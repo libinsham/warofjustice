@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>War of Justice Press - Inauguration</title>
+
+
+  <style>
+
+    /* =========================================
+       RESET
+    ========================================= */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+
+    /* =========================================
+       PAGE
+    ========================================= */
+
+    body {
+      min-height: 100vh;
+
+      /* IMPORTANT: Allow page scrolling */
+      overflow-x: hidden;
+      overflow-y: auto;
+
+      font-family: Arial, sans-serif;
+
+      background:
+        radial-gradient(
+          circle at center,
+          #a00000 0%,
+          #720000 45%,
+          #360000 100%
+        );
+    }
+
+
+    /* =========================================
+       RED INAUGURATION BACKGROUND
+    ========================================= */
+
+    .inauguration-section {
+      position: relative;
+
+      width: 100%;
+      min-height: 100vh;
+
+      overflow: hidden;
+
+      background:
+        radial-gradient(
+          circle at center,
+          #a00000 0%,
+          #720000 45%,
+          #360000 100%
+        );
+    }
+
+
+    .inauguration-section::before {
+      content: "";
+
+      position: absolute;
+      inset: 0;
+
+      background:
+
+        radial-gradient(
+          circle at 50% 50%,
+          rgba(255, 180, 0, 0.12),
+          transparent 55%
+        ),
+
+        radial-gradient(
+          circle at 10% 10%,
+          rgba(255, 215, 0, 0.08),
+          transparent 30%
+        ),
+
+        radial-gradient(
+          circle at 90% 80%,
+          rgba(255, 100, 0, 0.08),
+          transparent 30%
+        );
+
+      pointer-events: none;
+
+      z-index: 1;
+    }
+
+
+    /* =========================================
+       HERO
+    ========================================= */
+
+    .hero {
+      position: relative;
+
+      z-index: 5;
+
+      width: 100%;
+      min-height: 100vh;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 40px;
+    }
+
+
+    /* =========================================
+       MAIN BANNER
+    ========================================= */
+
+    .banner {
+      position: relative;
+
+      z-index: 5;
+
+      width: min(1100px, 85vw);
+
+      border-radius: 12px;
+
+      overflow: hidden;
+
+      box-shadow:
+        0 25px 70px rgba(0, 0, 0, 0.55),
+        0 0 35px rgba(255, 190, 0, 0.18);
+    }
+
+
+    .banner img {
+      display: block;
+
+      width: 100%;
+      height: auto;
+    }
+
+
+    /* =========================================
+       FIXED BALLOON BUNCH
+       RIGHT SIDE
+    ========================================= */
+
+    .balloon-bunch {
+      position: absolute;
+
+      right: 3vw;
+      top: 12%;
+
+      width: clamp(110px, 14vw, 220px);
+      height: auto;
+
+      z-index: 15;
+
+      pointer-events: none;
+      user-select: none;
+
+      animation:
+        balloonFloat
+        5s
+        ease-in-out
+        infinite;
+
+      will-change: transform;
+    }
+
+
+    @keyframes balloonFloat {
+
+      0% {
+        transform:
+          translateY(0)
+          rotate(-2deg);
+      }
+
+
+      50% {
+        transform:
+          translateY(-22px)
+          rotate(2deg);
+      }
+
+
+      100% {
+        transform:
+          translateY(0)
+          rotate(-2deg);
+      }
+
+    }
+
+
+    /* =========================================
+       FALLING EFFECT LAYER
+    ========================================= */
+
+    #falling-effects {
+      position: absolute;
+
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+
+      overflow: hidden;
+
+      pointer-events: none;
+
+      z-index: 20;
+    }
+
+
+    /* =========================================
+       FALLING PNG IMAGES
+    ========================================= */
+
+    .falling-item {
+      position: absolute;
+
+      top: -250px;
+
+      pointer-events: none;
+      user-select: none;
+
+      will-change: transform;
+
+      animation:
+        fallDown
+        var(--duration)
+        linear
+        forwards;
+    }
+
+
+    @keyframes fallDown {
+
+      0% {
+        transform:
+          translate3d(
+            0,
+            -150px,
+            0
+          )
+          rotate(0deg);
+
+        opacity: 0;
+      }
+
+
+      8% {
+        opacity: var(--opacity);
+      }
+
+
+      50% {
+        opacity: var(--opacity);
+      }
+
+
+      100% {
+        transform:
+          translate3d(
+            var(--drift),
+            120vh,
+            0
+          )
+          rotate(
+            var(--rotation)
+          );
+
+        opacity: 0;
+      }
+
+    }
+
+
+    /* =========================================
+       BLINKING STARS
+    ========================================= */
+
+    .blinking-star {
+      position: absolute;
+
+      pointer-events: none;
+
+      animation:
+        starBlink
+        var(--blink-duration)
+        ease-in-out
+        infinite;
+    }
+
+
+    @keyframes starBlink {
+
+      0% {
+        opacity: 0.2;
+
+        transform:
+          scale(0.5)
+          rotate(0deg);
+      }
+
+
+      50% {
+        opacity: 1;
+
+        transform:
+          scale(1.25)
+          rotate(20deg);
+
+        filter:
+          drop-shadow(
+            0 0 8px
+            #ffd700
+          );
+      }
+
+
+      100% {
+        opacity: 0.2;
+
+        transform:
+          scale(0.5)
+          rotate(0deg);
+      }
+
+    }
+
+
+    /* =========================================
+       SMALL GOLD GLITTER
+    ========================================= */
+
+    .glitter {
+      position: absolute;
+
+      width: var(--size);
+      height: var(--size);
+
+      border-radius: 50%;
+
+      background:
+        radial-gradient(
+          circle,
+          #ffffff 0%,
+          #ffd700 35%,
+          rgba(255, 215, 0, 0) 75%
+        );
+
+      animation:
+        glitterBlink
+        var(--blink-duration)
+        ease-in-out
+        infinite;
+    }
+
+
+    @keyframes glitterBlink {
+
+      0% {
+        opacity: 0;
+
+        transform:
+          scale(0.4);
+      }
+
+
+      50% {
+        opacity: 1;
+
+        transform:
+          scale(1.4);
+
+        box-shadow:
+          0 0 8px #ffd700,
+          0 0 16px #ffb300;
+      }
+
+
+      100% {
+        opacity: 0;
+
+        transform:
+          scale(0.4);
+      }
+
+    }
+
+
+    /* =========================================
+       FOLLOW WAR OF JUSTICE SECTION
+    ========================================= */
+
+    .follow-section {
+      position: relative;
+
+      z-index: 30;
+
+      width: 100%;
+
+      padding: 40px 20px 50px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #f7f7f7 0%,
+          #ececec 50%,
+          #ffffff 100%
+        );
+    }
+
+
+    .follow-container {
+      width: min(1400px, 100%);
+
+      margin: 0 auto;
+    }
+
+
+    /* =========================================
+       FOLLOW HEADING
+    ========================================= */
+
+    .follow-heading {
+      text-align: center;
+
+      margin-bottom: 25px;
+    }
+
+
+    .follow-heading h2 {
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      flex-wrap: wrap;
+
+      gap: 8px;
+
+      color: #263852;
+
+      font-size:
+        clamp(20px, 2.2vw, 30px);
+
+      font-weight: 800;
+
+      line-height: 1.3;
+    }
+
+
+    .follow-heading h2 span {
+      color: #222;
+
+      font-size: 0.72em;
+      font-weight: 600;
+    }
+
+
+    .follow-info-icon {
+      width: 25px;
+      height: 25px;
+
+      border-radius: 50%;
+
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      background: #263852;
+      color: white;
+
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+
+    .follow-heading p {
+      margin-top: 7px;
+
+      color: #555;
+
+      font-size: 16px;
+    }
+
+
+    /* =========================================
+       SOCIAL MEDIA GRID
+    ========================================= */
+
+    .social-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+      gap: 16px;
+
+      width: 100%;
+    }
+
+
+    /* =========================================
+       SOCIAL CARD
+    ========================================= */
+
+    .social-card {
+      min-height: 300px;
+
+      padding: 18px 12px 12px;
+
+      display: flex;
+      flex-direction: column;
+
+      align-items: center;
+
+      background:
+        rgba(255, 255, 255, 0.96);
+
+      border:
+        1px solid #d9d9d9;
+
+      border-radius: 16px;
+
+      box-shadow:
+        0 6px 18px
+        rgba(0, 0, 0, 0.12);
+
+      transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+    }
+
+
+    .social-card:hover {
+      transform:
+        translateY(-6px);
+
+      box-shadow:
+        0 14px 30px
+        rgba(0, 0, 0, 0.18);
+    }
+
+
+    /* =========================================
+       SOCIAL ICON
+    ========================================= */
+
+    .social-icon {
+      width: 52px;
+      height: 52px;
+
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      margin-bottom: 5px;
+    }
+
+
+    .social-icon img {
+      width: 100%;
+      height: 100%;
+
+      object-fit: contain;
+    }
+
+
+    .social-card h3 {
+      margin: 4px 0 12px;
+
+      color: #222;
+
+      font-size: 18px;
+      font-weight: 800;
+
+      text-align: center;
+    }
+
+
+    /* =========================================
+       QR CODE
+    ========================================= */
+
+    .qr-code {
+      width: 115px;
+      height: 115px;
+
+      object-fit: contain;
+
+      margin-bottom: 8px;
+    }
+
+
+    .social-card small {
+      margin-bottom: 15px;
+
+      color: #a32391;
+
+      font-size: 8px;
+      font-weight: 700;
+
+      text-align: center;
+    }
+
+
+    /* =========================================
+       SUBSCRIBE BUTTON
+    ========================================= */
+
+    .subscribe-btn {
+      width: 100%;
+      min-height: 42px;
+
+      margin-top: auto;
+
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      gap: 8px;
+
+      border-radius: 8px;
+
+      color: #ffffff;
+
+      font-size: 14px;
+      font-weight: 700;
+
+      text-decoration: none;
+
+      transition:
+        transform 0.25s ease,
+        filter 0.25s ease;
+    }
+
+
+    .subscribe-btn:hover {
+      transform:
+        scale(1.02);
+
+      filter:
+        brightness(1.08);
+    }
+
+
+    .subscribe-btn img {
+      width: 22px;
+      height: 22px;
+
+      object-fit: contain;
+    }
+
+
+    /* =========================================
+       BUTTON COLORS
+    ========================================= */
+
+    .youtube-btn {
+      background: #ff0000;
+    }
+
+
+    .whatsapp-btn {
+      background: #118c4f;
+    }
+
+
+    .facebook-btn {
+      background: #2166c5;
+    }
+
+
+    .instagram-btn {
+      background:
+        linear-gradient(
+          90deg,
+          #ff9d00,
+          #f8335f,
+          #9b20c9
+        );
+    }
+
+
+    .twitter-btn {
+      background: #000000;
+    }
+
+
+    /* =========================================
+       TABLET
+    ========================================= */
+
+    @media (max-width: 1100px) {
+
+      .social-grid {
+        grid-template-columns:
+          repeat(3, 1fr);
+      }
+
+    }
+
+
+    /* =========================================
+       SMALL TABLET
+    ========================================= */
+
+    @media (max-width: 750px) {
+
+      .social-grid {
+        grid-template-columns:
+          repeat(2, 1fr);
+      }
+
+    }
+
+
+    /* =========================================
+       MOBILE
+       ONE CARD PER ROW
+    ========================================= */
+
+    @media (max-width: 600px) {
+
+      .hero {
+        min-height: 100svh;
+
+        padding: 15px;
+      }
+
+
+      .banner {
+        width: 95vw;
+
+        border-radius: 8px;
+      }
+
+
+      .balloon-bunch {
+        right: -20px;
+        top: 5%;
+
+        width:
+          clamp(90px, 28vw, 150px);
+
+        opacity: 0.9;
+      }
+
+
+      .follow-section {
+        padding: 30px 15px;
+      }
+
+
+      .follow-heading {
+        margin-bottom: 22px;
+      }
+
+
+      .follow-heading h2 {
+        font-size: 21px;
+      }
+
+
+      .follow-heading h2 span {
+        width: 100%;
+
+        font-size: 13px;
+      }
+
+
+      .follow-heading p {
+        font-size: 14px;
+
+        line-height: 1.5;
+      }
+
+
+      /* ONE CARD IN EACH ROW */
+
+      .social-grid {
+        grid-template-columns: 1fr;
+
+        gap: 16px;
+      }
+
+
+      .social-card {
+        width: 100%;
+
+        min-height: 280px;
+
+        max-width: 420px;
+
+        margin: 0 auto;
+
+        padding:
+          20px
+          18px
+          15px;
+      }
+
+
+      .social-icon {
+        width: 55px;
+        height: 55px;
+      }
+
+
+      .qr-code {
+        width: 125px;
+        height: 125px;
+      }
+
+
+      .subscribe-btn {
+        min-height: 46px;
+
+        font-size: 15px;
+      }
+
+    }
+
+
+    /* =========================================
+       SMALL MOBILE
+    ========================================= */
+
+    @media (max-width: 380px) {
+
+      .follow-section {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+
+      .follow-heading h2 {
+        font-size: 19px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <!-- =====================================
+       INAUGURATION SECTION
+  ====================================== -->
+
+  <section class="inauguration-section">
+
+
+    <!-- FALLING EFFECTS -->
+
+    <div id="falling-effects"></div>
+
+
+    <!-- FIXED RIGHT BALLOON BUNCH -->
+
+    <img
+      src="images/baloon.png"
+      alt="Celebration Balloons"
+      class="balloon-bunch"
+    >
+
+
+    <!-- MAIN BANNER -->
+
+    <main class="hero">
+
+      <div class="banner">
+
+        <img
+          src="images/banner.jpeg"
+          alt="War of Justice Press Inauguration"
+        >
+
+      </div>
+
+    </main>
+
+
+  </section>
+
+
+  <!-- =====================================
+       FOLLOW WAR OF JUSTICE
+       NEW SECTION
+  ====================================== -->
+
+  <section class="follow-section">
+
+    <div class="follow-container">
+
+
+      <!-- HEADING -->
+
+      <div class="follow-heading">
+
+        <h2>
+
+          <span class="follow-info-icon">
+            i
+          </span>
+
+          Follow War of Justice
+
+          <span>
+            — please follow our official channels
+            before submitting your application
+          </span>
+
+        </h2>
+
+        <p>
+          Follow our official channels and click subscribe to continue
+        </p>
+
+      </div>
+
+
+      <!-- SOCIAL CARDS -->
+
+      <div class="social-grid">
+
+
+        <!-- YOUTUBE -->
+
+        <article class="social-card">
+
+          <div class="social-icon">
+
+            <img
+              src="images/youtube.png"
+              alt="YouTube"
+            >
+
+          </div>
+
+          <h3>YouTube</h3>
+
+          <img
+            src="images/youtube-qr.jpeg"
+            alt="YouTube QR Code"
+            class="qr-code"
+          >
+
+          <small>
+            WAR OF JUSTICE PRESS
+          </small>
+
+          <a
+            href="https://youtube.com/@warofjustice1?si=UbnxbMjDcVwH1gEG&cxqr=raBA8pGCOZlvl2nqpeDJez"
+            class="subscribe-btn youtube-btn"
+            target="_blank"
+          >
+
+            <img
+              src="images/youtube.png"
+              alt=""
+            >
+
+            Click to Subscribe
+
+          </a>
+
+        </article>
+
+
+        <!-- WHATSAPP -->
+
+        <article class="social-card">
+
+          <div class="social-icon">
+
+            <img
+              src="images/whatsapp.png"
+              alt="WhatsApp"
+            >
+
+          </div>
+
+          <h3>WhatsApp Channel</h3>
+
+          <img
+            src="images/whatsapp-qr.jpg"
+            alt="WhatsApp QR Code"
+            class="qr-code"
+          >
+
+          <small>
+            WAR OF JUSTICE PRESS
+          </small>
+
+          <a
+            href="https://whatsapp.com/channel/0029Vb8OkvXCXC3GpYsFSm0o"
+            class="subscribe-btn whatsapp-btn"
+            target="_blank"
+          >
+
+            <img
+              src="images/whatsapp.png"
+              alt=""
+            >
+
+            Click to Subscribe
+
+          </a>
+
+        </article>
+
+
+        <!-- FACEBOOK -->
+
+        <article class="social-card">
+
+          <div class="social-icon">
+
+            <img
+              src="images/facebook.png"
+              alt="Facebook"
+            >
+
+          </div>
+
+          <h3>Facebook</h3>
+
+          <img
+            src="images/facebook-qr.png"
+            alt="Facebook QR Code"
+            class="qr-code"
+          >
+
+          <small>
+            WAR OF JUSTICE PRESS
+          </small>
+
+          <a
+            href="#"
+            class="subscribe-btn facebook-btn"
+            target="_blank"
+          >
+
+            <img
+              src="images/facebook.png"
+              alt=""
+            >
+
+            Click to Subscribe
+
+          </a>
+
+        </article>
+
+
+        <!-- INSTAGRAM -->
+
+        <article class="social-card">
+
+          <div class="social-icon">
+
+            <img
+              src="images/instagram.png"
+              alt="Instagram"
+            >
+
+          </div>
+
+          <h3>Instagram</h3>
+
+          <img
+            src="images/instagram-qr.jpeg"
+            alt="Instagram QR Code"
+            class="qr-code"
+          >
+
+          <small>
+            WAR OF JUSTICE PRESS
+          </small>
+
+          <a
+            href="https://www.instagram.com/warofjusticeprs?utm_source=qr"
+            class="subscribe-btn instagram-btn"
+            target="_blank"
+          >
+
+            <img
+              src="images/instagram.png"
+              alt=""
+            >
+
+            Click to Subscribe
+
+          </a>
+
+        </article>
+
+
+        <!-- X / TWITTER -->
+
+        <article class="social-card">
+
+          <div class="social-icon">
+
+            <img
+              src="images/twitter.png"
+              alt="X Twitter"
+            >
+
+          </div>
+
+          <h3>X / Twitter</h3>
+
+          <img
+            src="images/twitter-qr.jpeg"
+            alt="X Twitter QR Code"
+            class="qr-code"
+          >
+
+          <small>
+            WAR OF JUSTICE PRESS
+          </small>
+
+          <a
+            href="https://x.com/warofjusticePrs"
+            class="subscribe-btn twitter-btn"
+            target="_blank"
+          >
+
+            <img
+              src="images/twitter.png"
+              alt=""
+            >
+
+            Click to Subscribe
+
+          </a>
+
+        </article>
+
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================
+       JAVASCRIPT
+  ====================================== -->
+
+  <script>
+
+    const effectsContainer =
+      document.getElementById(
+        "falling-effects"
+      );
+
+
+    /* =====================================
+       IMAGE PATHS
+    ====================================== */
+
+    const petals = [
+
+      "images/rsoe-petals.png",
+
+      "images/rsoe-petals-2.png",
+
+      "images/rsoe-petals-3.png"
+
+    ];
+
+
+    const ribbons = [
+
+      "images/ribbon1.png",
+
+      "images/ribbon2.png",
+
+      "images/ribbon3.png"
+
+    ];
+
+
+    const confetti = [
+
+      "images/petals-1.png",
+
+      "images/petals-2.png"
+
+    ];
+
+
+    const stars = [
+
+      "images/petals-3.png"
+
+    ];
+
+
+    /* =====================================
+       RANDOM IMAGE
+    ====================================== */
+
+    function getRandomImage(images) {
+
+      return images[
+        Math.floor(
+          Math.random() *
+          images.length
+        )
+      ];
+
+    }
+
+
+    /* =====================================
+       CREATE FALLING ITEM
+    ====================================== */
+
+    function createFallingItem(
+
+      imageList,
+
+      minSize,
+
+      maxSize,
+
+      minDuration,
+
+      maxDuration,
+
+      driftAmount,
+
+      opacity = 1
+
+    ) {
+
+      const item =
+        document.createElement("img");
+
+
+      item.src =
+        getRandomImage(imageList);
+
+
+      item.className =
+        "falling-item";
+
+
+      item.style.left =
+        Math.random() * 100 + "%";
+
+
+      const size =
+
+        minSize +
+
+        Math.random() *
+
+        (maxSize - minSize);
+
+
+      item.style.width =
+        size + "px";
+
+
+      const duration =
+
+        minDuration +
+
+        Math.random() *
+
+        (maxDuration - minDuration);
+
+
+      item.style.setProperty(
+
+        "--duration",
+
+        duration + "s"
+
+      );
+
+
+      const drift =
+
+        Math.random() *
+
+        (driftAmount * 2)
+
+        -
+
+        driftAmount;
+
+
+      item.style.setProperty(
+
+        "--drift",
+
+        drift + "px"
+
+      );
+
+
+      const rotation =
+
+        Math.random() * 1080
+
+        -
+
+        540;
+
+
+      item.style.setProperty(
+
+        "--rotation",
+
+        rotation + "deg"
+
+      );
+
+
+      item.style.setProperty(
+
+        "--opacity",
+
+        opacity
+
+      );
+
+
+      effectsContainer.appendChild(
+        item
+      );
+
+
+      setTimeout(() => {
+
+        item.remove();
+
+      },
+
+      (duration + 2) * 1000
+
+      );
+
+    }
+
+
+    /* =====================================
+       ROSE PETALS
+    ====================================== */
+
+    function createPetal() {
+
+      createFallingItem(
+
+        petals,
+
+        35,
+        75,
+
+        7,
+        12,
+
+        180,
+
+        0.95
+
+      );
+
+    }
+
+
+    /* =====================================
+       RIBBONS
+    ====================================== */
+
+    function createRibbon() {
+
+      createFallingItem(
+
+        ribbons,
+
+        35,
+        85,
+
+        8,
+        14,
+
+        130,
+
+        0.9
+
+      );
+
+    }
+
+
+    /* =====================================
+       CONFETTI
+    ====================================== */
+
+    function createConfetti() {
+
+      createFallingItem(
+
+        confetti,
+
+        12,
+        30,
+
+        5,
+        9,
+
+        200,
+
+        0.9
+
+      );
+
+    }
+
+
+    /* =====================================
+       BLINKING STAR
+    ====================================== */
+
+    function createStar() {
+
+      const star =
+        document.createElement("img");
+
+
+      star.src =
+        getRandomImage(stars);
+
+
+      star.className =
+        "blinking-star";
+
+
+      star.style.left =
+        Math.random() * 96 + "%";
+
+
+      star.style.top =
+        Math.random() * 90 + "%";
+
+
+      const size =
+
+        12 +
+
+        Math.random() * 25;
+
+
+      star.style.width =
+        size + "px";
+
+
+      const duration =
+
+        1.5 +
+
+        Math.random() * 2.5;
+
+
+      star.style.setProperty(
+
+        "--blink-duration",
+
+        duration + "s"
+
+      );
+
+
+      effectsContainer.appendChild(
+        star
+      );
+
+
+      setTimeout(() => {
+
+        star.remove();
+
+      }, 8000);
+
+    }
+
+
+    /* =====================================
+       SMALL GOLD GLITTER
+    ====================================== */
+
+    function createGlitter() {
+
+      const glitter =
+        document.createElement("div");
+
+
+      glitter.className =
+        "glitter";
+
+
+      glitter.style.left =
+        Math.random() * 100 + "%";
+
+
+      glitter.style.top =
+        Math.random() * 100 + "%";
+
+
+      const size =
+
+        3 +
+
+        Math.random() * 6;
+
+
+      glitter.style.setProperty(
+
+        "--size",
+
+        size + "px"
+
+      );
+
+
+      const duration =
+
+        1 +
+
+        Math.random() * 3;
+
+
+      glitter.style.setProperty(
+
+        "--blink-duration",
+
+        duration + "s"
+
+      );
+
+
+      effectsContainer.appendChild(
+        glitter
+      );
+
+
+      setTimeout(() => {
+
+        glitter.remove();
+
+      }, 7000);
+
+    }
+
+
+    /* =====================================
+       CONTINUOUS EFFECTS
+    ====================================== */
+
+    /* 🌹 Rose petals */
+
+    setInterval(
+      createPetal,
+      750
+    );
+
+
+    /* 🎀 Ribbons */
+
+    setInterval(
+      createRibbon,
+      1800
+    );
+
+
+    /* 🎊 Confetti */
+
+    setInterval(
+      createConfetti,
+      1300
+    );
+
+
+    /* ⭐ Stars */
+
+    setInterval(
+      createStar,
+      1800
+    );
+
+
+    /* ✨ Glitters */
+
+    setInterval(
+      createGlitter,
+      500
+    );
+
+
+    /* =====================================
+       INITIAL PETALS
+    ====================================== */
+
+    for (
+      let i = 0;
+      i < 8;
+      i++
+    ) {
+
+      setTimeout(
+
+        createPetal,
+
+        Math.random() * 3000
+
+      );
+
+    }
+
+
+    /* =====================================
+       INITIAL GLITTERS
+    ====================================== */
+
+    for (
+      let i = 0;
+      i < 15;
+      i++
+    ) {
+
+      setTimeout(
+
+        createGlitter,
+
+        Math.random() * 4000
+
+      );
+
+    }
+
+  </script>
+
+
+</body>
+
+</html>
