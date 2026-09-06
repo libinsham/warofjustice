@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { BreakingTicker } from "@/components/public/breaking-ticker";
@@ -13,30 +12,31 @@ import type { PostSummary } from "@/types";
 // Server Component — fetched at request time so published content is
 // always current; swap to `revalidate` if you want ISR caching instead.
 export default async function HomePage() {
-  const [feedRes, breakingRes, trendingRes, categories] = await Promise.all([
-    postsApi.listPublished({ page: 1 }).catch(() => ({
-      results: [] as PostSummary[],
-      count: 0,
-      next: null,
-      previous: null,
-    })),
+  const [feedRes, breakingRes, trendingRes, categories] =
+    await Promise.all([
+      postsApi.listPublished({ page: 1 }).catch(() => ({
+        results: [] as PostSummary[],
+        count: 0,
+        next: null,
+        previous: null,
+      })),
 
-    postsApi.listPublished({ breaking: true }).catch(() => ({
-      results: [] as PostSummary[],
-      count: 0,
-      next: null,
-      previous: null,
-    })),
+      postsApi.listPublished({ breaking: true }).catch(() => ({
+        results: [] as PostSummary[],
+        count: 0,
+        next: null,
+        previous: null,
+      })),
 
-    postsApi.listPublished({ trending: true }).catch(() => ({
-      results: [] as PostSummary[],
-      count: 0,
-      next: null,
-      previous: null,
-    })),
+      postsApi.listPublished({ trending: true }).catch(() => ({
+        results: [] as PostSummary[],
+        count: 0,
+        next: null,
+        previous: null,
+      })),
 
-    categoriesApi.list().catch(() => []),
-  ]);
+      categoriesApi.list().catch(() => []),
+    ]);
 
   const feed = feedRes.results;
   const hero = feed[0];
@@ -48,12 +48,11 @@ export default async function HomePage() {
     <>
       {/* ========================================= */}
       {/* INAUGURATION POPUP                       */}
-      {/* Shows before the normal homepage content */}
       {/* ========================================= */}
       <InaugurationPopup />
 
       {/* ========================================= */}
-      {/* MAIN NEWSHUB HOMEPAGE                    */}
+      {/* MAIN WAR OF JUSTICE HOMEPAGE             */}
       {/* ========================================= */}
       <div className="mx-auto max-w-7xl px-4 py-6">
         <BreakingTicker posts={breakingRes.results} />
@@ -62,16 +61,18 @@ export default async function HomePage() {
         {hero && (
           <section className="mt-6 grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <Link href={`/article/${hero.slug}`} className="group block">
+              <Link
+                href={`/article/${hero.slug}`}
+                className="group block"
+              >
                 <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted">
                   {hero.featured_image_url && (
-                    <Image
+                    <img
                       src={hero.featured_image_url}
                       alt={hero.title}
-                      fill
-                      priority
-                      className="object-cover"
-                      sizes="(min-width: 1024px) 66vw, 100vw"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="eager"
+                      referrerPolicy="no-referrer"
                     />
                   )}
 

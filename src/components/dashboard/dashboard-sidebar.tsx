@@ -27,7 +27,7 @@ export function DashboardSidebar({
     <div className="flex h-full flex-col bg-neutral-950 text-neutral-300">
       <div className="flex h-16 items-center border-b border-neutral-800 px-6">
         <Link href="/" className="text-lg font-black text-white">
-          NEWS<span className="text-primary">HUB</span>
+          WAR OF <span className="text-primary"> JUSTICE </span>
         </Link>
       </div>
       <p className="px-6 pt-4 text-xs font-semibold uppercase tracking-widest text-neutral-500">{brandLabel}</p>
