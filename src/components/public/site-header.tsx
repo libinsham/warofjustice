@@ -66,7 +66,7 @@ export function SiteHeader() {
               className="hidden items-center gap-1 text-neutral-700 hover:text-primary sm:flex"
             >
               <BookOpen className="h-4 w-4" />
-              eBooks
+              e-Magazine
             </Link>
 
             <Button
