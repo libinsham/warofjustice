@@ -16,21 +16,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/providers/auth-provider";
-import {
   NAV_CATEGORIES,
   SITE_NAME,
   SITE_SLOGAN,
 } from "@/lib/site-config";
 
 export function SiteHeader() {
-  const { user, status, isAuthor, isAdmin, logout } = useAuth();
   const router = useRouter();
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,9 +29,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      {/* Top utility bar */}
+      {/* =====================================================
+          TOP UTILITY BAR
+      ====================================================== */}
       <div className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 text-sm">
+          {/* Date + e-Paper */}
           <div className="flex items-center gap-3 text-neutral-700">
             <span>
               {new Date().toLocaleDateString("en-US", {
@@ -60,6 +54,7 @@ export function SiteHeader() {
             </Link>
           </div>
 
+          {/* Right side */}
           <div className="flex items-center gap-4">
             <Link
               href="/gallery"
@@ -74,83 +69,54 @@ export function SiteHeader() {
               size="sm"
               className="uppercase tracking-wide"
             >
-              <Link href="/subscribe">Subscribe</Link>
+              <Link href="/subscribe">
+                Subscribe
+              </Link>
             </Button>
 
-            {status === "authenticated" && user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary">
-                    <UserIcon className="h-4 w-4" />
-                    {user.username}
-                  </button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    disabled
-                    className="text-xs text-muted-foreground"
-                  >
-                    {user.email}
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  {isAuthor && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/author/dashboard">
-                        Author Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/dashboard">
-                        Admin Panel
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={() => logout()}>
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
-              >
-                <UserIcon className="h-4 w-4" />
-                Login
-              </Link>
-            )}
+            {/* PUBLIC HEADER:
+                Do not call useAuth() here.
+                Authentication is only handled in admin/author areas. */}
+            <Link
+              href="/login"
+              className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+            >
+              <UserIcon className="h-4 w-4" />
+              Login
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Main masthead banner */}
+      {/* =====================================================
+          MAIN MASTHEAD
+      ====================================================== */}
       <div className="bg-gradient-to-b from-primary to-red-800 text-white">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
           {/* Menu + Search */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
+            {/* Mobile menu */}
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-white/10 hover:text-white lg:hidden"
-              onClick={() => setMobileOpen((v) => !v)}
+              onClick={() => setMobileOpen((value) => !value)}
+              aria-label="Toggle navigation"
             >
-              <Menu className="h-6 w-6" />
+              {mobileOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
 
+            {/* Desktop search */}
             <Button
               variant="ghost"
               size="icon"
               className="hidden text-white hover:bg-white/10 hover:text-white lg:inline-flex"
-              onClick={() => setSearchOpen((v) => !v)}
+              onClick={() => setSearchOpen((value) => !value)}
+              aria-label="Toggle search"
             >
               {searchOpen ? (
                 <X className="h-5 w-5" />
@@ -160,10 +126,13 @@ export function SiteHeader() {
             </Button>
           </div>
 
-          {/* LOGO */}
+          {/* =================================================
+              LOGO
+          ================================================== */}
           <Link
             href="/"
-            className="shrink-0 flex items-center"
+            className="flex shrink-0 items-center"
+            aria-label={SITE_NAME}
           >
             <Image
               src="/logo.png"
@@ -171,11 +140,13 @@ export function SiteHeader() {
               width={150}
               height={100}
               priority
-              className="h-20 w-32 sm:h-24 sm:w-40 object-contain"
+              className="h-20 w-32 object-contain sm:h-24 sm:w-40"
             />
           </Link>
 
-          {/* Site title */}
+          {/* =================================================
+              SITE TITLE
+          ================================================== */}
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl font-black leading-none tracking-tight sm:text-4xl lg:text-5xl">
               WAR{" "}
@@ -190,7 +161,9 @@ export function SiteHeader() {
             </p>
           </div>
 
-          {/* Partner badges */}
+          {/* =================================================
+              PARTNER BADGES
+          ================================================== */}
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
             <Image
               src="/today-news-badge.png"
@@ -210,23 +183,28 @@ export function SiteHeader() {
           </div>
         </div>
 
-        {/* Search */}
+        {/* =================================================
+            SEARCH PANEL
+        ================================================== */}
         {searchOpen && (
           <div className="border-t border-white/20 px-4 py-3">
             <form
               className="mx-auto max-w-2xl"
-              onSubmit={(e) => {
-                e.preventDefault();
+              onSubmit={(event) => {
+                event.preventDefault();
 
-                const q = new FormData(e.currentTarget).get("q");
+                const form = new FormData(event.currentTarget);
+                const query = form.get("q")?.toString().trim();
 
-                if (q) {
-                  router.push(
-                    `/search?q=${encodeURIComponent(q.toString())}`
-                  );
-
-                  setSearchOpen(false);
+                if (!query) {
+                  return;
                 }
+
+                router.push(
+                  `/search?q=${encodeURIComponent(query)}`
+                );
+
+                setSearchOpen(false);
               }}
             >
               <Input
@@ -240,7 +218,9 @@ export function SiteHeader() {
         )}
       </div>
 
-      {/* Category navigation */}
+      {/* =====================================================
+          DESKTOP CATEGORY NAVIGATION
+      ====================================================== */}
       <div className="border-b-2 border-primary bg-white">
         <nav className="mx-auto hidden max-w-7xl items-center gap-6 px-4 py-3 text-sm font-bold uppercase tracking-wide lg:flex">
           {NAV_CATEGORIES.map((link) => (
@@ -263,7 +243,9 @@ export function SiteHeader() {
         </nav>
       </div>
 
-      {/* Mobile navigation */}
+      {/* =====================================================
+          MOBILE NAVIGATION
+      ====================================================== */}
       {mobileOpen && (
         <nav className="flex flex-col gap-1 border-b bg-white px-4 py-3 lg:hidden">
           {NAV_CATEGORIES.map((link) => (
