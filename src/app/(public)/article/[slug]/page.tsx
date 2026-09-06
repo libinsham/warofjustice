@@ -89,11 +89,15 @@ export default async function ArticleDetailPage({ params }: Props) {
             <span className="text-muted-foreground">{readingTimeMins} min read</span>
           </div>
 
-          {post.featured_image_url && (
-            <div className="relative mt-6 aspect-video w-full overflow-hidden rounded-xl bg-muted">
-              <Image src={post.featured_image_url} alt={post.title} fill priority className="object-cover" sizes="(min-width: 1024px) 60vw, 100vw" />
-            </div>
-          )}
+       {post.featured_image_url && (
+  <div className="mt-6 aspect-video w-full overflow-hidden rounded-xl bg-muted">
+    <img
+      src={post.featured_image_url}
+      alt={post.title}
+      className="h-full w-full object-cover"
+    />
+  </div>
+)}
 
           {/* Content comes from the rich-text editor as sanitized HTML on the
               backend. If sanitization isn't guaranteed server-side yet, run
