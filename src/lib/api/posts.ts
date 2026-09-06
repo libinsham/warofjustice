@@ -1,5 +1,11 @@
 import { apiClient } from "./client";
-import type { Paginated, Post, PostStatus, PostSummary, PostWritePayload } from "@/types";
+import type {
+  Paginated,
+  Post,
+  PostStatus,
+  PostSummary,
+  PostWritePayload,
+} from "@/types";
 
 export interface PublicPostFilters {
   category?: string;
@@ -9,10 +15,19 @@ export interface PublicPostFilters {
   page?: number;
 }
 
-export const postsApi = {
-  // ---- Public (unauthenticated) ----
+export interface AdminPostFilters {
+  status?: PostStatus;
+  page?: number;
+}
 
-  async listPublished(filters: PublicPostFilters = {}): Promise<Paginated<PostSummary>> {
+export const postsApi = {
+  // =========================================================
+  // PUBLIC
+  // =========================================================
+
+  async listPublished(
+    filters: PublicPostFilters = {}
+  ): Promise<Paginated<PostSummary>> {
     const { data } = await apiClient.get<Paginated<PostSummary>>("/posts/", {
       params: {
         category: filters.category,
@@ -22,6 +37,7 @@ export const postsApi = {
         page: filters.page,
       },
     });
+
     return data;
   },
 
@@ -30,73 +46,142 @@ export const postsApi = {
     return data;
   },
 
-  // ---- Author dashboard ----
+  // =========================================================
+  // AUTHOR DASHBOARD
+  // =========================================================
 
-  async listMine(params: { status?: PostStatus; page?: number } = {}): Promise<Paginated<Post>> {
-    const { data } = await apiClient.get<Paginated<Post>>("/dashboard/posts/", { params });
+  async listMine(
+    params: { status?: PostStatus; page?: number } = {}
+  ): Promise<Paginated<Post>> {
+    const { data } = await apiClient.get<Paginated<Post>>(
+      "/dashboard/posts/",
+      { params }
+    );
+
     return data;
   },
 
   async retrieveMine(id: number): Promise<Post> {
-    const { data } = await apiClient.get<Post>(`/dashboard/posts/${id}/`);
+    const { data } = await apiClient.get<Post>(
+      `/dashboard/posts/${id}/`
+    );
+
     return data;
   },
 
   async create(payload: PostWritePayload): Promise<Post> {
-    const { data } = await apiClient.post<Post>("/dashboard/posts/", payload);
+    const { data } = await apiClient.post<Post>(
+      "/dashboard/posts/",
+      payload
+    );
+
     return data;
   },
 
-  async update(id: number, payload: Partial<PostWritePayload>): Promise<Post> {
-    const { data } = await apiClient.put<Post>(`/dashboard/posts/${id}/`, payload);
+  async update(
+    id: number,
+    payload: Partial<PostWritePayload>
+  ): Promise<Post> {
+    const { data } = await apiClient.put<Post>(
+      `/dashboard/posts/${id}/`,
+      payload
+    );
+
     return data;
   },
 
   async submitForReview(id: number): Promise<Post> {
-    const { data } = await apiClient.post<Post>(`/dashboard/posts/${id}/submit/`);
+    const { data } = await apiClient.post<Post>(
+      `/dashboard/posts/${id}/submit/`
+    );
+
     return data;
   },
 
+  // Author can delete their own post if backend permits it.
   async remove(id: number): Promise<void> {
     await apiClient.delete(`/dashboard/posts/${id}/`);
   },
 
-  // ---- Admin / Editor / Super Admin (approval workflow) ----
+  // =========================================================
+  // ADMIN / EDITOR / SUPER ADMIN
+  // =========================================================
 
-  async listForReview(params: { status?: PostStatus; page?: number } = {}): Promise<Paginated<Post>> {
-    const { data } = await apiClient.get<Paginated<Post>>("/admin/posts/", { params });
+  async listForReview(
+    params: AdminPostFilters = {}
+  ): Promise<Paginated<Post>> {
+    const { data } = await apiClient.get<Paginated<Post>>(
+      "/admin/posts/",
+      { params }
+    );
+
     return data;
   },
 
   async retrieveForReview(id: number): Promise<Post> {
-    const { data } = await apiClient.get<Post>(`/admin/posts/${id}/`);
+    const { data } = await apiClient.get<Post>(
+      `/admin/posts/${id}/`
+    );
+
     return data;
   },
 
-  async approve(id: number, publishImmediately: boolean): Promise<Post> {
-    const { data } = await apiClient.post<Post>(`/admin/posts/${id}/approve/`, {
-      publish_immediately: publishImmediately,
-    });
+  async approve(
+    id: number,
+    publishImmediately: boolean
+  ): Promise<Post> {
+    const { data } = await apiClient.post<Post>(
+      `/admin/posts/${id}/approve/`,
+      {
+        publish_immediately: publishImmediately,
+      }
+    );
+
     return data;
   },
 
-  async reject(id: number, note: string): Promise<Post> {
-    const { data } = await apiClient.post<Post>(`/admin/posts/${id}/reject/`, { note });
+  async reject(
+    id: number,
+    note: string
+  ): Promise<Post> {
+    const { data } = await apiClient.post<Post>(
+      `/admin/posts/${id}/reject/`,
+      { note }
+    );
+
     return data;
   },
 
-  async requestChanges(id: number, note: string): Promise<Post> {
-    const { data } = await apiClient.post<Post>(`/admin/posts/${id}/request-changes/`, { note });
+  async requestChanges(
+    id: number,
+    note: string
+  ): Promise<Post> {
+    const { data } = await apiClient.post<Post>(
+      `/admin/posts/${id}/request-changes/`,
+      { note }
+    );
+
     return data;
   },
 
   async publish(id: number): Promise<Post> {
-    const { data } = await apiClient.post<Post>(`/admin/posts/${id}/publish/`);
+    const { data } = await apiClient.post<Post>(
+      `/admin/posts/${id}/publish/`
+    );
+
     return data;
   },
 
   async archive(id: number): Promise<Post> {
-    const { data } = await apiClient.post<Post>(`/admin/posts/${id}/archive/`);
+    const { data } = await apiClient.post<Post>(
+      `/admin/posts/${id}/archive/`
+    );
+
     return data;
+  },
+
+  // Admin / Super Admin delete
+  async adminRemove(id: number): Promise<void> {
+    await apiClient.delete(`/admin/posts/${id}/`);
   },
 };
