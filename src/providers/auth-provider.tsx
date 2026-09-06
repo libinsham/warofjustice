@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleExpired = () => {
       setUser(null);
       setStatus("unauthenticated");
-      router.push("/login");
+     
     };
     window.addEventListener("newshub:session-expired", handleExpired);
     return () => window.removeEventListener("newshub:session-expired", handleExpired);
