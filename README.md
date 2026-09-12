@@ -1,4 +1,4 @@
-# NEWSHUB — Next.js Frontend
+# War of justice — Next.js Frontend
 
 Real, working Next.js code — scaffolded with `create-next-app`, and every
 stage of this build was checked with `tsc --noEmit` and a full `npm run

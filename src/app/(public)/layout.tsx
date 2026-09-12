@@ -21,9 +21,7 @@ export default function PublicLayout({
           <SiteHeader />
 
           {/* Public Page Content */}
-          <main className="flex-1">
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
 
           {/* Website Footer */}
           <SiteFooter />

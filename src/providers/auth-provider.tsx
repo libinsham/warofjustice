@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import { authApi } from "@/lib/api/auth";
@@ -19,14 +25,26 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+  autoLoadUser = false,
+}: {
+  children: React.ReactNode;
+  autoLoadUser?: boolean;
+}) {
   const [user, setUser] = useState<User | null>(null);
-  const [status, setStatus] = useState<AuthContextValue["status"]>("loading");
+
+  const [status, setStatus] =
+    useState<AuthContextValue["status"]>(
+      autoLoadUser ? "loading" : "unauthenticated"
+    );
+
   const router = useRouter();
 
   const loadUser = useCallback(async () => {
     try {
       const me = await authApi.me();
+
       setUser(me);
       setStatus("authenticated");
     } catch {
@@ -36,47 +54,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    loadUser();
+    // Only load the user automatically when enabled
+    if (autoLoadUser) {
+      loadUser();
+    }
 
-    // Fired by the API client when a refresh attempt fails (see lib/api/client.ts).
     const handleExpired = () => {
       setUser(null);
       setStatus("unauthenticated");
-     
     };
-    window.addEventListener("newshub:session-expired", handleExpired);
-    return () => window.removeEventListener("newshub:session-expired", handleExpired);
-  }, [loadUser, router]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const loggedInUser = await authApi.login({ email, password });
-    setUser(loggedInUser);
-    setStatus("authenticated");
-  }, []);
+    window.addEventListener(
+      "newshub:session-expired",
+      handleExpired
+    );
+
+    return () => {
+      window.removeEventListener(
+        "newshub:session-expired",
+        handleExpired
+      );
+    };
+  }, [autoLoadUser, loadUser]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const loggedInUser = await authApi.login({
+        email,
+        password,
+      });
+
+      setUser(loggedInUser);
+      setStatus("authenticated");
+    },
+    []
+  );
 
   const logout = useCallback(async () => {
-    await authApi.logout();
-    setUser(null);
-    setStatus("unauthenticated");
-    router.push("/");
+    try {
+      await authApi.logout();
+    } finally {
+      setUser(null);
+      setStatus("unauthenticated");
+      router.push("/");
+    }
   }, [router]);
+
+  const roleName = user?.role?.name;
 
   const value: AuthContextValue = {
     user,
     status,
-    isAuthor: user?.role.name === "author" || user?.role.name === "admin" || user?.role.name === "super_admin",
-    isAdmin: user?.role.name === "admin" || user?.role.name === "super_admin",
-    isSuperAdmin: user?.role.name === "super_admin",
+
+    isAuthor:
+      roleName === "author" ||
+      roleName === "admin" ||
+      roleName === "super_admin",
+
+    isAdmin:
+      roleName === "admin" ||
+      roleName === "super_admin",
+
+    isSuperAdmin:
+      roleName === "super_admin",
+
     login,
     logout,
     refresh: loadUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+
+  if (!ctx) {
+    throw new Error(
+      "useAuth must be used within AuthProvider"
+    );
+  }
+
   return ctx;
 }
