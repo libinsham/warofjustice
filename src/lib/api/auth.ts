@@ -13,7 +13,8 @@ export interface RegisterReaderPayload {
   password: string;
 }
 
-export interface RegisterAuthorPayload extends RegisterReaderPayload {
+export interface RegisterAuthorPayload
+  extends RegisterReaderPayload {
   bio?: string;
 }
 
@@ -29,73 +30,169 @@ export interface RegisterSubscriberPayload {
 }
 
 export const authApi = {
-  async login(payload: LoginPayload): Promise<User> {
-    const { data } = await apiClient.post("/auth/login/", payload);
+  async login(
+    payload: LoginPayload,
+  ): Promise<User> {
+    const { data } = await apiClient.post(
+      "/auth/login/",
+      payload,
+    );
+
     TokenStore.setAccess(data.access);
+
     return data.user as User;
   },
 
-  async registerReader(payload: RegisterReaderPayload): Promise<User> {
-    const { data } = await apiClient.post("/auth/register/", payload);
+  async registerReader(
+    payload: RegisterReaderPayload,
+  ): Promise<User> {
+    const { data } = await apiClient.post(
+      "/auth/register/",
+      payload,
+    );
+
     TokenStore.setAccess(data.access);
+
     return data.user as User;
   },
 
-  /** Author accounts start `pending` — no tokens are issued yet. */
-  async registerAuthor(payload: RegisterAuthorPayload): Promise<{ message: string; user: User }> {
-    const { data } = await apiClient.post("/auth/register-author/", payload);
+  /**
+   * Author accounts start `pending`
+   * — no tokens are issued yet.
+   */
+  async registerAuthor(
+    payload: RegisterAuthorPayload,
+  ): Promise<{
+    message: string;
+    user: User;
+  }> {
+    const { data } = await apiClient.post(
+      "/auth/register-author/",
+      payload,
+    );
+
     return data;
   },
 
-  /** Full "Subscriber" application — account + contact info + channel
-   * follow confirmation. Issues tokens immediately like registerReader. */
-  async registerSubscriber(payload: RegisterSubscriberPayload): Promise<User> {
-    const { data } = await apiClient.post("/auth/register-subscriber/", payload);
+  /**
+   * Full Subscriber application.
+   * Creates the account and issues tokens.
+   */
+  async registerSubscriber(
+    payload: RegisterSubscriberPayload,
+  ): Promise<User> {
+    const { data } = await apiClient.post(
+      "/auth/register-subscriber/",
+      payload,
+    );
+
     TokenStore.setAccess(data.access);
+
     return data.user as User;
+  },
+
+  /**
+   * Member / Contributor application.
+   *
+   * Sends multipart/form-data because the application
+   * includes selfie, identity and supporting documents.
+   */
+  async registerMemberApplication(
+    formData: FormData,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post(
+      "/auth/register-member/",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return data;
   },
 
   async me(): Promise<User> {
-    const { data } = await apiClient.get("/auth/me/");
+    const { data } = await apiClient.get(
+      "/auth/me/",
+    );
+
     return data as User;
   },
 
-  async updateProfile(payload: Partial<{
-    username: string; bio: string; avatar_url: string; twitter: string; facebook: string; website: string;
-  }>): Promise<User> {
-    const { data } = await apiClient.patch("/auth/me/", payload);
+  async updateProfile(
+    payload: Partial<{
+      username: string;
+      bio: string;
+      avatar_url: string;
+      twitter: string;
+      facebook: string;
+      website: string;
+    }>,
+  ): Promise<User> {
+    const { data } = await apiClient.patch(
+      "/auth/me/",
+      payload,
+    );
+
     return data as User;
   },
 
-  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const { data } = await apiClient.post("/auth/change-password/", {
-      current_password: currentPassword,
-      new_password: newPassword,
-    });
+  async changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post(
+      "/auth/change-password/",
+      {
+        current_password: currentPassword,
+        new_password: newPassword,
+      },
+    );
+
     return data;
   },
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    const { data } = await apiClient.post("/auth/forgot-password/", { email });
+  async forgotPassword(
+    email: string,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post(
+      "/auth/forgot-password/",
+      { email },
+    );
+
     return data;
   },
 
-  async resetPassword(uid: string, token: string, newPassword: string): Promise<{ message: string }> {
-    const { data } = await apiClient.post("/auth/reset-password/", {
-      uid,
-      token,
-      new_password: newPassword,
-    });
+  async resetPassword(
+    uid: string,
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post(
+      "/auth/reset-password/",
+      {
+        uid,
+        token,
+        new_password: newPassword,
+      },
+    );
+
     return data;
   },
 
   async logout(): Promise<void> {
     try {
-      await apiClient.post("/auth/logout/");
+      await apiClient.post(
+        "/auth/logout/",
+      );
     } catch {
-      // If the access token already expired, the server call will 401 —
-      // that's fine, we still clear local state below regardless.
+      // If the access token already expired,
+      // the server may return 401.
+      // We still clear local state.
     }
+
     TokenStore.clear();
   },
 };
