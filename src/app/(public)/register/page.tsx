@@ -75,7 +75,7 @@ const CHANNELS = [
     key: "twitter",
     label: "X / Twitter",
     url: "https://x.com/warofjusticePrs",
-    qrImage: "/inauguration/images/twitter-qr.png",
+    qrImage: "/inauguration/images/twitter-qr.jpeg",
     icon: null,
     color: "bg-black hover:bg-gray-900",
   },
