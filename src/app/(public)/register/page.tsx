@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { QRCodeSVG } from "qrcode.react";
 import { isAxiosError } from "axios";
 import {
   ArrowRight,
@@ -43,34 +42,42 @@ const CHANNELS = [
     key: "youtube",
     label: "YouTube",
     url: "https://youtube.com/@warofjustice1?si=UbnxbMjDcVwH1gEG&cxqr=raBA8pGCOZlvl2nqpeDJez",
+    qrImage: "/inauguration/images/youtube-qr.jpeg",
     icon: null,
     color: "bg-red-600 hover:bg-red-700",
-    qrColor: "#dc2626",
   },
   {
     key: "whatsapp",
     label: "WhatsApp Channel",
     url: "https://whatsapp.com/channel/0029Vb8OkvXCXC3GpYsFSm0o",
+    qrImage: "/inauguration/images/whatsapp-qr.jpg",
     icon: null,
     color: "bg-green-600 hover:bg-green-700",
-    qrColor: "#16a34a",
   },
   {
     key: "facebook",
     label: "Facebook",
     url: "https://www.facebook.com/share/1SMGVTJ5Vn/",
+    qrImage: "/inauguration/images/facebook-qr.png",
     icon: null,
     color: "bg-blue-600 hover:bg-blue-700",
-    qrColor: "#2563eb",
   },
   {
     key: "instagram",
     label: "Instagram",
     url: "https://www.instagram.com/warofjusticeprs/",
+    qrImage: "/inauguration/images/instagram-qr.jpeg",
     icon: null,
     color:
       "bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 hover:opacity-90",
-    qrColor: "#db2777",
+  },
+  {
+    key: "twitter",
+    label: "X / Twitter",
+    url: "https://x.com/warofjusticePrs",
+    qrImage: "/inauguration/images/twitter-qr.png",
+    icon: null,
+    color: "bg-black hover:bg-gray-900",
   },
 ];
 
@@ -1303,13 +1310,10 @@ export default function RegisterPage() {
                               }
                               className="block"
                             >
-                              <QRCodeSVG
-                                value={channel.url}
-                                size={76}
-                                bgColor="#ffffff"
-                                fgColor={channel.qrColor}
-                                level="M"
-                                className="mx-auto"
+                              <img
+                                src={channel.qrImage}
+                                alt={`${channel.label} QR Code`}
+                                className="mx-auto h-[88px] w-[88px] object-contain"
                               />
                             </a>
 
