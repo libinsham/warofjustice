@@ -11,21 +11,43 @@ import {
   X,
   BookOpen,
   Gem,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 import {
   NAV_CATEGORIES,
   SITE_NAME,
   SITE_SLOGAN,
 } from "@/lib/site-config";
 
+import { useAuth } from "@/providers/auth-provider";
+
 export function SiteHeader() {
   const router = useRouter();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const {
+    user,
+    status,
+    isAdmin,
+    logout,
+  } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40">
@@ -56,6 +78,7 @@ export function SiteHeader() {
 
           {/* Right side */}
           <div className="flex items-center gap-4">
+            {/* e-Magazine */}
             <Link
               href="/gallery"
               className="hidden items-center gap-1 text-neutral-700 hover:text-primary sm:flex"
@@ -64,6 +87,7 @@ export function SiteHeader() {
               e-Magazine
             </Link>
 
+            {/* Subscribe */}
             <Button
               asChild
               size="sm"
@@ -74,16 +98,41 @@ export function SiteHeader() {
               </Link>
             </Button>
 
-            {/* PUBLIC HEADER:
-                Do not call useAuth() here.
-                Authentication is only handled in admin/author areas. */}
-            <Link
-              href="/login"
-              className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
-            >
-              <UserIcon className="h-4 w-4" />
-              Login
-            </Link>
+            {/* =================================================
+                AUTHENTICATED USER / LOGIN
+            ================================================== */}
+            {status === "authenticated" && user ? (
+              <>
+                {/* Admin Panel */}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Admin Panel
+                  </Link>
+                )}
+
+                {/* Logout */}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+              >
+                <UserIcon className="h-4 w-4" />
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

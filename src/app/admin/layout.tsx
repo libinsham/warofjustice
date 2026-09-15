@@ -7,11 +7,12 @@ import {
   Clock,
   Image as ImageIcon,
   Users,
+  UsersRound,
   FolderTree,
   Settings,
 } from "lucide-react";
 
-import { AuthProvider } from "@/providers/auth-provider";
+import { QueryProvider } from "@/providers/query-provider";
 import { ProtectedRoute } from "@/components/shared/protected-route";
 import {
   DashboardSidebar,
@@ -46,6 +47,16 @@ const ADMIN_NAV: SidebarItem[] = [
     icon: Users,
   },
   {
+    href: "/admin/subscribers",
+    label: "Subscribers",
+    icon: UsersRound,
+  },
+  {
+    href: "/admin/member-contributor",
+    label: "Member & Contributor",
+    icon: UsersRound,
+  },
+  {
     href: "/admin/categories",
     label: "Categories",
     icon: FolderTree,
@@ -65,7 +76,7 @@ export default function AdminLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <AuthProvider>
+    <QueryProvider>
       <ProtectedRoute requireRole="admin">
         <div className="flex min-h-screen">
           <DashboardSidebar
@@ -87,6 +98,6 @@ export default function AdminLayout({
           </div>
         </div>
       </ProtectedRoute>
-    </AuthProvider>
+    </QueryProvider>
   );
 }
