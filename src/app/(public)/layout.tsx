@@ -10,11 +10,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
-    >
+    <ThemeProvider>
       <QueryProvider>
         <div className="flex min-h-screen flex-col bg-background text-foreground">
           {/* Website Header */}

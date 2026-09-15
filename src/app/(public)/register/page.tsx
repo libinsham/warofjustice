@@ -1455,43 +1455,12 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* SUCCESS */}
-
-            {memberSuccess ? (
-              <div className="p-8 text-center sm:p-12">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-600 text-white">
-                  <CheckCircle2 className="h-8 w-8" />
-                </div>
-
-                <h3 className="mt-5 text-2xl font-black text-gray-900">
-                  Application Submitted
-                </h3>
-
-                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
-                  {memberSuccess}
-                </p>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Your application is now
-                  pending verification and
-                  review.
-                </p>
-              </div>
-            ) : (
-              <form
-                onSubmit={memberForm.handleSubmit(
-                  onMemberSubmit,
-                )}
-                className="space-y-6 p-5 sm:p-8"
-              >
-
-                {/* MEMBER ERROR */}
-
-                {memberError && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                    {memberError}
-                  </div>
-                )}
+            <form
+              onSubmit={memberForm.handleSubmit(
+                onMemberSubmit,
+              )}
+              className="space-y-6 p-5 sm:p-8"
+            >
 
                 {/* ========================================================
                     01 PERSONAL
@@ -2462,6 +2431,42 @@ export default function RegisterPage() {
                     reviewed before approval.
                   </p>
 
+                  {/* SUBMISSION ERROR */}
+
+                  {memberError && (
+                    <div
+                      role="alert"
+                      className="mt-5 rounded-lg border border-red-300 bg-red-100 px-4 py-3 text-left text-sm font-semibold text-red-700"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 font-black">
+                          ⚠
+                        </span>
+
+                        <span>
+                          {memberError}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBMISSION SUCCESS */}
+
+                  {memberSuccess && (
+                    <div
+                      role="status"
+                      className="mt-5 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-left text-sm font-semibold text-green-700"
+                    >
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+
+                        <span>
+                          {memberSuccess}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     disabled={
@@ -2475,10 +2480,15 @@ export default function RegisterPage() {
 
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
+
+                  <p className="mt-3 text-[10px] text-gray-500">
+                    Secure submission · Your
+                    information is handled
+                    confidentially
+                  </p>
                 </div>
 
               </form>
-            )}
           </section>
         )}
 
