@@ -101,7 +101,7 @@ export const authApi = {
     formData: FormData,
   ): Promise<{ message: string }> {
     const { data } = await apiClient.post(
-      "/auth/register-member/",
+      "/auth/register-member-contributor/",
       formData,
       {
         headers: {
