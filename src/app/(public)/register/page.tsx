@@ -440,10 +440,20 @@ function ErrorText({
   }
 
   return (
-    <p className="mt-1 text-xs font-medium text-red-600">
-      {message}
+    <p
+      role="alert"
+      className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600"
+    >
+      <span aria-hidden="true">⚠</span>
+      <span>{message}</span>
     </p>
   );
+}
+
+function errorInputClass(hasError: boolean) {
+  return hasError
+    ? "border-red-600 ring-1 ring-red-100 focus-visible:border-red-600 focus-visible:ring-red-600"
+    : "";
 }
 
 function SectionHeader({
@@ -482,6 +492,7 @@ function UploadBox({
   accept,
   file,
   onChange,
+  error,
 }: {
   label: string;
   required?: boolean;
@@ -490,9 +501,14 @@ function UploadBox({
   onChange: (
     file: File | null,
   ) => void;
+  error?: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-center transition hover:border-red-400 hover:bg-red-50/30">
+    <div className={`rounded-xl border border-dashed p-4 text-center transition ${
+        error
+          ? "border-red-600 bg-red-50/60 ring-1 ring-red-100"
+          : "border-gray-300 bg-gray-50 hover:border-red-400 hover:bg-red-50/30"
+      }`}>
       <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-700">
         <Upload className="h-4 w-4" />
       </div>
@@ -533,6 +549,8 @@ function UploadBox({
           {file.name}
         </p>
       )}
+
+      <ErrorText message={error} />
     </div>
   );
 }
@@ -631,6 +649,14 @@ export default function RegisterPage() {
     supportingFiles,
     setSupportingFiles,
   ] = useState<File[]>([]);
+
+  const [fileErrors, setFileErrors] = useState<{
+    selfie?: string;
+    aadhaar?: string;
+    pan?: string;
+    identity?: string;
+    supporting?: string;
+  }>({});
 
   /* ---------------------------------------------------------------------- */
   /* FORMS                                                                  */
@@ -817,170 +843,155 @@ export default function RegisterPage() {
     ) => {
       setMemberError(null);
       setMemberSuccess(null);
+      setFileErrors({});
 
       if (!selfieFile) {
-        setMemberError(
-          "Please upload your selfie photograph.",
-        );
+        setFileErrors({ selfie: "Please upload your selfie photograph." });
+        setMemberError("Please upload your selfie photograph.");
         return;
       }
 
       if (!identityFile) {
-        setMemberError(
-          "Please upload an identity proof.",
-        );
+        setFileErrors({ identity: "Please upload an identity proof." });
+        setMemberError("Please upload an identity proof.");
         return;
       }
 
-      const maxFileSize =
-        5 * 1024 * 1024;
+      const maxFileSize = 5 * 1024 * 1024;
 
-      const filesToCheck = [
-        selfieFile,
-        aadhaarFile,
-        panFile,
-        identityFile,
-        ...supportingFiles,
-      ].filter(Boolean) as File[];
+      const validateFile = (file: File, label: string, allowedTypes: string[]) => {
+        if (file.size > maxFileSize) return `${label} must be 5MB or smaller.`;
+        if (allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
+          return `${label} must be a JPG, PNG or PDF file.`;
+        }
+        return null;
+      };
 
-      const oversizedFile =
-        filesToCheck.find(
-          (file) =>
-            file.size >
-            maxFileSize,
-        );
-
-      if (oversizedFile) {
-        setMemberError(
-          `${oversizedFile.name} is larger than 5MB.`,
-        );
+      const selfieValidation = validateFile(selfieFile, "Selfie photograph", ["image/jpeg", "image/png"]);
+      if (selfieValidation) {
+        setFileErrors({ selfie: selfieValidation });
+        setMemberError(selfieValidation);
         return;
+      }
+
+      const identityValidation = validateFile(identityFile, "Identity proof", ["image/jpeg", "image/png", "application/pdf"]);
+      if (identityValidation) {
+        setFileErrors({ identity: identityValidation });
+        setMemberError(identityValidation);
+        return;
+      }
+
+      if (aadhaarFile) {
+        const error = validateFile(aadhaarFile, "Aadhaar card", ["image/jpeg", "image/png", "application/pdf"]);
+        if (error) {
+          setFileErrors({ aadhaar: error });
+          setMemberError(error);
+          return;
+        }
+      }
+
+      if (panFile) {
+        const error = validateFile(panFile, "PAN card", ["image/jpeg", "image/png", "application/pdf"]);
+        if (error) {
+          setFileErrors({ pan: error });
+          setMemberError(error);
+          return;
+        }
+      }
+
+      const supportingFile = supportingFiles[0];
+      if (supportingFile) {
+        const error = validateFile(supportingFile, "Supporting document", ["image/jpeg", "image/png", "application/pdf"]);
+        if (error) {
+          setFileErrors({ supporting: error });
+          setMemberError(error);
+          return;
+        }
       }
 
       setMemberSubmitting(true);
 
       try {
-        const formData =
-          new FormData();
+        const formData = new FormData();
 
-        Object.entries(data).forEach(
-          ([key, value]) => {
-            if (
-              Array.isArray(value)
-            ) {
-              value.forEach((item) =>
-                formData.append(
-                  key,
-                  item,
-                ),
-              );
+        Object.entries(data).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            value.forEach((item) => formData.append(key, item));
+            return;
+          }
+          if (typeof value === "boolean") {
+            formData.append(key, value ? "true" : "false");
+            return;
+          }
+          formData.append(key, String(value ?? ""));
+        });
 
-              return;
-            }
+        formData.append("selfie", selfieFile);
+        if (aadhaarFile) formData.append("aadhaar_card", aadhaarFile);
+        if (panFile) formData.append("pan_card", panFile);
+        formData.append("identity_proof", identityFile);
+        supportingFiles.forEach((file) => formData.append("supporting_documents", file));
 
-            if (
-              typeof value ===
-              "boolean"
-            ) {
-              formData.append(
-                key,
-                value
-                  ? "true"
-                  : "false",
-              );
-
-              return;
-            }
-
-            formData.append(
-              key,
-              String(
-                value ?? "",
-              ),
-            );
-          },
-        );
-
-        formData.append(
-          "selfie",
-          selfieFile,
-        );
-
-        if (aadhaarFile) {
-          formData.append(
-            "aadhaar_card",
-            aadhaarFile,
-          );
-        }
-
-        if (panFile) {
-          formData.append(
-            "pan_card",
-            panFile,
-          );
-        }
-
-        formData.append(
-          "identity_proof",
-          identityFile,
-        );
-
-        supportingFiles.forEach(
-          (file) => {
-            formData.append(
-              "supporting_documents",
-              file,
-            );
-          },
-        );
-
-        const response =
-          await authApi.registerMemberApplication(
-            formData,
-          );
+        const response = await authApi.registerMemberApplication(formData);
 
         setMemberSuccess(
-          response?.message ??
-            "Your application has been submitted successfully.",
+          response?.message ?? "Your application has been submitted successfully.",
         );
 
         memberForm.reset();
-
         setSelfieFile(null);
         setAadhaarFile(null);
         setPanFile(null);
         setIdentityFile(null);
         setSupportingFiles([]);
+        setFileErrors({});
 
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (error) {
         if (isAxiosError(error)) {
-          const responseData =
-            error.response?.data;
+          const responseData = error.response?.data;
+          const formFields = [
+            "full_name", "date_of_birth", "gender", "mobile_number", "email",
+            "aadhaar_number", "pan_number", "house_street", "village_town_city",
+            "taluk", "mandal", "district", "state", "pin_code",
+            "residency_status", "citizenship", "education", "profession",
+            "bpl_status", "reporting_areas", "requested_role", "other_role",
+            "declaration_confirmed", "terms_confirmed", "privacy_confirmed",
+            "communication_consent",
+          ] as const;
+
+          let firstFieldError: string | null = null;
+
+          formFields.forEach((field) => {
+            const value = responseData?.[field];
+            const message = Array.isArray(value) && value.length > 0
+              ? String(value[0])
+              : typeof value === "string" && value
+                ? value
+                : null;
+
+            if (message) {
+              memberForm.setError(field, { type: "server", message });
+              if (!firstFieldError) firstFieldError = message;
+            }
+          });
 
           const detail =
             responseData?.detail ||
             responseData?.message ||
-            "Application submission failed. Please check your information and try again.";
+            firstFieldError ||
+            "Application submission failed. Please check the highlighted fields and try again.";
 
-          setMemberError(
-            detail,
-          );
+          setMemberError(String(detail));
         } else {
-          setMemberError(
-            "Application submission failed. Please try again.",
-          );
+          setMemberError("Application submission failed. Please try again.");
         }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } finally {
-        setMemberSubmitting(
-          false,
-        );
+        setMemberSubmitting(false);
       }
     };
-
   /* ==========================================================================
      RETURN
      ========================================================================== */
@@ -1488,6 +1499,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "full_name",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.full_name))}
                       />
 
                       <ErrorText
@@ -1512,6 +1525,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "date_of_birth",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.date_of_birth))}
                       />
 
                       <ErrorText
@@ -1604,6 +1619,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "mobile_number",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.mobile_number))}
                       />
 
                       <ErrorText
@@ -1631,6 +1648,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "email",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.email))}
                       />
 
                       <ErrorText
@@ -1655,6 +1674,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "aadhaar_number",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.aadhaar_number))}
                       />
 
                       <ErrorText
@@ -1679,6 +1700,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "pan_number",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.pan_number))}
                       />
 
                       <ErrorText
@@ -1718,6 +1741,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "house_street",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.house_street))}
                       />
 
                       <ErrorText
@@ -1741,6 +1766,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "village_town_city",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.village_town_city))}
                       />
 
                       <ErrorText
@@ -1764,6 +1791,18 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "taluk",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.taluk))}
+                      />
+
+                      <ErrorText
+                        message={
+                          memberForm
+                            .formState
+                            .errors
+                            .taluk
+                            ?.message
+                        }
                       />
                     </div>
 
@@ -1777,6 +1816,18 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "mandal",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.mandal))}
+                      />
+
+                      <ErrorText
+                        message={
+                          memberForm
+                            .formState
+                            .errors
+                            .mandal
+                            ?.message
+                        }
                       />
                     </div>
 
@@ -1790,6 +1841,18 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "district",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.district))}
+                      />
+
+                      <ErrorText
+                        message={
+                          memberForm
+                            .formState
+                            .errors
+                            .district
+                            ?.message
+                        }
                       />
                     </div>
 
@@ -1803,6 +1866,18 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "state",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.state))}
+                      />
+
+                      <ErrorText
+                        message={
+                          memberForm
+                            .formState
+                            .errors
+                            .state
+                            ?.message
+                        }
                       />
                     </div>
 
@@ -1818,6 +1893,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "pin_code",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.pin_code))}
                       />
 
                       <ErrorText
@@ -1858,7 +1935,7 @@ export default function RegisterPage() {
                           {...memberForm.register(
                             "residency_status",
                           )}
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          className={`h-10 w-full rounded-md border bg-background px-3 text-sm ${errorInputClass(Boolean(memberForm.formState.errors.residency_status)) || "border-input"}`}
                         >
                           <option value="">
                             Select status
@@ -1876,6 +1953,16 @@ export default function RegisterPage() {
                             Tribal Area
                           </option>
                         </select>
+
+                        <ErrorText
+                          message={
+                            memberForm
+                              .formState
+                              .errors
+                              .residency_status
+                              ?.message
+                          }
+                        />
                       </div>
 
                       <div className="space-y-1.5">
@@ -1887,7 +1974,7 @@ export default function RegisterPage() {
                           {...memberForm.register(
                             "citizenship",
                           )}
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          className={`h-10 w-full rounded-md border bg-background px-3 text-sm ${errorInputClass(Boolean(memberForm.formState.errors.citizenship)) || "border-input"}`}
                         >
                           <option value="">
                             Select citizenship
@@ -1902,6 +1989,16 @@ export default function RegisterPage() {
                             Other
                           </option>
                         </select>
+
+                        <ErrorText
+                          message={
+                            memberForm
+                              .formState
+                              .errors
+                              .citizenship
+                              ?.message
+                          }
+                        />
                       </div>
 
                       <div className="space-y-1.5">
@@ -1913,7 +2010,7 @@ export default function RegisterPage() {
                           {...memberForm.register(
                             "education",
                           )}
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          className={`h-10 w-full rounded-md border bg-background px-3 text-sm ${errorInputClass(Boolean(memberForm.formState.errors.education)) || "border-input"}`}
                         >
                           <option value="">
                             Select education
@@ -1946,6 +2043,16 @@ export default function RegisterPage() {
                             Other
                           </option>
                         </select>
+
+                        <ErrorText
+                          message={
+                            memberForm
+                              .formState
+                              .errors
+                              .education
+                              ?.message
+                          }
+                        />
                       </div>
 
                       <div className="space-y-1.5">
@@ -1957,7 +2064,7 @@ export default function RegisterPage() {
                           {...memberForm.register(
                             "profession",
                           )}
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          className={`h-10 w-full rounded-md border bg-background px-3 text-sm ${errorInputClass(Boolean(memberForm.formState.errors.profession)) || "border-input"}`}
                         >
                           <option value="">
                             Select profession
@@ -2002,6 +2109,16 @@ export default function RegisterPage() {
                             Other
                           </option>
                         </select>
+
+                        <ErrorText
+                          message={
+                            memberForm
+                              .formState
+                              .errors
+                              .profession
+                              ?.message
+                          }
+                        />
                       </div>
 
                     </div>
@@ -2162,6 +2279,8 @@ export default function RegisterPage() {
                         {...memberForm.register(
                           "other_role",
                         )}
+                      
+                      className={errorInputClass(Boolean(memberForm.formState.errors.other_role))}
                       />
 
                       <ErrorText
@@ -2196,9 +2315,12 @@ export default function RegisterPage() {
                       file={
                         selfieFile
                       }
-                      onChange={
-                        setSelfieFile
-                      }
+                      error={fileErrors.selfie}
+                      onChange={(file) => {
+                        setSelfieFile(file);
+                        setFileErrors((prev) => ({ ...prev, selfie: undefined }));
+                        setMemberError(null);
+                      }}
                     />
 
                     <UploadBox
@@ -2207,9 +2329,12 @@ export default function RegisterPage() {
                       file={
                         aadhaarFile
                       }
-                      onChange={
-                        setAadhaarFile
-                      }
+                      error={fileErrors.aadhaar}
+                      onChange={(file) => {
+                        setAadhaarFile(file);
+                        setFileErrors((prev) => ({ ...prev, aadhaar: undefined }));
+                        setMemberError(null);
+                      }}
                     />
 
                     <UploadBox
@@ -2218,9 +2343,12 @@ export default function RegisterPage() {
                       file={
                         panFile
                       }
-                      onChange={
-                        setPanFile
-                      }
+                      error={fileErrors.pan}
+                      onChange={(file) => {
+                        setPanFile(file);
+                        setFileErrors((prev) => ({ ...prev, pan: undefined }));
+                        setMemberError(null);
+                      }}
                     />
 
                     <UploadBox
@@ -2230,9 +2358,12 @@ export default function RegisterPage() {
                       file={
                         identityFile
                       }
-                      onChange={
-                        setIdentityFile
-                      }
+                      error={fileErrors.identity}
+                      onChange={(file) => {
+                        setIdentityFile(file);
+                        setFileErrors((prev) => ({ ...prev, identity: undefined }));
+                        setMemberError(null);
+                      }}
                     />
 
                     <UploadBox
@@ -2242,13 +2373,12 @@ export default function RegisterPage() {
                         supportingFiles[0] ??
                         null
                       }
-                      onChange={(file) =>
-                        setSupportingFiles(
-                          file
-                            ? [file]
-                            : [],
-                        )
-                      }
+                      error={fileErrors.supporting}
+                      onChange={(file) => {
+                        setSupportingFiles(file ? [file] : []);
+                        setFileErrors((prev) => ({ ...prev, supporting: undefined }));
+                        setMemberError(null);
+                      }}
                     />
                   </div>
                 </section>
@@ -2263,7 +2393,13 @@ export default function RegisterPage() {
                     title="Declaration & Oath"
                   />
 
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                  <div
+                    className={`rounded-xl border bg-gray-50 p-5 ${
+                      memberForm.formState.errors.declaration_confirmed
+                        ? "border-red-600 ring-1 ring-red-100"
+                        : "border-gray-200"
+                    }`}
+                  >
                     <div className="space-y-3 text-sm leading-6 text-gray-600">
                       <p>
                         I hereby declare that
@@ -2334,7 +2470,14 @@ export default function RegisterPage() {
                     title="Terms & Conditions"
                   />
 
-                  <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                  <div
+                    className={`space-y-4 rounded-xl border bg-gray-50 p-5 ${
+                      memberForm.formState.errors.terms_confirmed ||
+                      memberForm.formState.errors.privacy_confirmed
+                        ? "border-red-600 ring-1 ring-red-100"
+                        : "border-gray-200"
+                    }`}
+                  >
 
                     <label className="flex cursor-pointer items-start gap-3 text-sm">
                       <input

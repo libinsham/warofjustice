@@ -13,6 +13,7 @@ import {
   Gem,
   LogOut,
   ShieldCheck,
+  PencilLine,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,13 @@ export function SiteHeader() {
     isAdmin,
     logout,
   } = useAuth();
+
+  const roleName = user?.role?.name;
+
+  // Member & Contributor use the same publishing access.
+  // Approved applications currently use the author role.
+const canAccessAuthorStudio =
+  roleName === "author";
 
   const handleLogout = async () => {
     try {
@@ -103,11 +111,22 @@ export function SiteHeader() {
             ================================================== */}
             {status === "authenticated" && user ? (
               <>
+                {/* Member & Contributor / Author Studio */}
+                {canAccessAuthorStudio && !isAdmin && (
+                  <Link
+                    href="/author/dashboard"
+                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-primary sm:flex"
+                  >
+                    <PencilLine className="h-4 w-4" />
+                    Author Studio
+                  </Link>
+                )}
+
                 {/* Admin Panel */}
                 {isAdmin && (
                   <Link
-                    href="/admin"
-                    className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+                    href="/admin/dashboard"
+                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-primary sm:flex"
                   >
                     <ShieldCheck className="h-4 w-4" />
                     Admin Panel
@@ -316,6 +335,33 @@ export function SiteHeader() {
             Premium
             <Gem className="h-4 w-4 text-yellow-500" />
           </Link>
+
+          {/* Mobile authenticated dashboard links */}
+          {status === "authenticated" && user && (
+            <>
+              {canAccessAuthorStudio && !isAdmin && (
+                <Link
+                  href="/author/dashboard"
+                  className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-bold uppercase text-neutral-800 hover:bg-accent hover:text-primary"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <PencilLine className="h-4 w-4" />
+                  Author Studio
+                </Link>
+              )}
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-bold uppercase text-neutral-800 hover:bg-accent hover:text-primary"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Admin Panel
+                </Link>
+              )}
+            </>
+          )}
         </nav>
       )}
     </header>

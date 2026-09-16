@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { authApi } from "@/lib/api/auth";
+import { TokenStore } from "@/lib/token-storage";
 import type { User } from "@/types";
 
 interface AuthContextValue {
@@ -36,16 +37,20 @@ export function AuthProvider({
 
   const [status, setStatus] =
     useState<AuthContextValue["status"]>(
-      autoLoadUser ? "loading" : "unauthenticated"
+      autoLoadUser ? "loading" : "unauthenticated",
     );
 
   const router = useRouter();
+
+  /* =========================================================
+     LOAD CURRENT USER
+  ========================================================= */
 
   const loadUser = useCallback(async () => {
     try {
       const me = await authApi.me();
 
-      setUser(me);
+      setUser(me as User);
       setStatus("authenticated");
     } catch {
       setUser(null);
@@ -53,52 +58,105 @@ export function AuthProvider({
     }
   }, []);
 
+  /* =========================================================
+     INITIAL AUTH CHECK
+  ========================================================= */
+
   useEffect(() => {
-    // Only load the user automatically when enabled
     if (autoLoadUser) {
-      loadUser();
+      void loadUser();
     }
 
     const handleExpired = () => {
+      TokenStore.clear();
       setUser(null);
       setStatus("unauthenticated");
     };
 
     window.addEventListener(
       "newshub:session-expired",
-      handleExpired
+      handleExpired,
     );
 
     return () => {
       window.removeEventListener(
         "newshub:session-expired",
-        handleExpired
+        handleExpired,
       );
     };
   }, [autoLoadUser, loadUser]);
 
+  /* =========================================================
+     LOGIN
+  ========================================================= */
+
   const login = useCallback(
     async (email: string, password: string) => {
-      const loggedInUser = await authApi.login({
+      /*
+       * authApi.login expects TWO arguments:
+       *
+       * authApi.login(email, password)
+       *
+       * not:
+       * authApi.login({ email, password })
+       */
+      const response = await authApi.login(
         email,
         password,
-      });
+      );
 
-      setUser(loggedInUser);
+      /* -------------------------------------------------------
+         Store access token
+      ------------------------------------------------------- */
+
+      if (!response?.access) {
+        throw new Error(
+          "Login succeeded but no access token was returned.",
+        );
+      }
+
+      TokenStore.setAccess(response.access);
+
+      /* -------------------------------------------------------
+         Get authenticated user
+      ------------------------------------------------------- */
+
+      let loggedInUser = response.user;
+
+      if (!loggedInUser) {
+        loggedInUser = await authApi.me();
+      }
+
+      if (!loggedInUser) {
+        throw new Error(
+          "Login succeeded but user information was not returned.",
+        );
+      }
+
+      setUser(loggedInUser as User);
       setStatus("authenticated");
     },
-    []
+    [],
   );
+
+  /* =========================================================
+     LOGOUT
+  ========================================================= */
 
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } finally {
+      TokenStore.clear();
       setUser(null);
       setStatus("unauthenticated");
       router.push("/");
     }
   }, [router]);
+
+  /* =========================================================
+     ROLE
+  ========================================================= */
 
   const roleName = user?.role?.name;
 
@@ -106,6 +164,11 @@ export function AuthProvider({
     user,
     status,
 
+    /*
+     * Author access also applies to Admin and Super Admin.
+     * Member & Contributor will use the same publishing flow
+     * through the existing author/publishing access.
+     */
     isAuthor:
       roleName === "author" ||
       roleName === "admin" ||
@@ -130,12 +193,16 @@ export function AuthProvider({
   );
 }
 
+/* =========================================================
+   useAuth
+========================================================= */
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
 
   if (!ctx) {
     throw new Error(
-      "useAuth must be used within AuthProvider"
+      "useAuth must be used within AuthProvider",
     );
   }
 
