@@ -24,7 +24,8 @@ interface AuthContextValue {
   refresh: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthContext =
+  createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({
   children,
@@ -37,7 +38,9 @@ export function AuthProvider({
 
   const [status, setStatus] =
     useState<AuthContextValue["status"]>(
-      autoLoadUser ? "loading" : "unauthenticated",
+      autoLoadUser
+        ? "loading"
+        : "unauthenticated",
     );
 
   const router = useRouter();
@@ -53,6 +56,7 @@ export function AuthProvider({
       setUser(me as User);
       setStatus("authenticated");
     } catch {
+      TokenStore.clear();
       setUser(null);
       setStatus("unauthenticated");
     }
@@ -84,29 +88,28 @@ export function AuthProvider({
         handleExpired,
       );
     };
-  }, [autoLoadUser, loadUser]);
+  }, [
+    autoLoadUser,
+    loadUser,
+  ]);
 
   /* =========================================================
      LOGIN
   ========================================================= */
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      /*
-       * authApi.login expects TWO arguments:
-       *
-       * authApi.login(email, password)
-       *
-       * not:
-       * authApi.login({ email, password })
-       */
-      const response = await authApi.login(
-        email,
-        password,
-      );
+    async (
+      email: string,
+      password: string,
+    ) => {
+      const response =
+        await authApi.login(
+          email,
+          password,
+        );
 
       /* -------------------------------------------------------
-         Store access token
+         ACCESS TOKEN
       ------------------------------------------------------- */
 
       if (!response?.access) {
@@ -115,26 +118,37 @@ export function AuthProvider({
         );
       }
 
-      TokenStore.setAccess(response.access);
+      TokenStore.setAccess(
+        response.access,
+      );
 
       /* -------------------------------------------------------
-         Get authenticated user
+         CURRENT USER
       ------------------------------------------------------- */
 
-      let loggedInUser = response.user;
+      let loggedInUser =
+        response.user;
 
       if (!loggedInUser) {
-        loggedInUser = await authApi.me();
+        loggedInUser =
+          await authApi.me();
       }
 
       if (!loggedInUser) {
+        TokenStore.clear();
+
         throw new Error(
           "Login succeeded but user information was not returned.",
         );
       }
 
-      setUser(loggedInUser as User);
-      setStatus("authenticated");
+      setUser(
+        loggedInUser as User,
+      );
+
+      setStatus(
+        "authenticated",
+      );
     },
     [],
   );
@@ -143,51 +157,89 @@ export function AuthProvider({
      LOGOUT
   ========================================================= */
 
-  const logout = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } finally {
-      TokenStore.clear();
-      setUser(null);
-      setStatus("unauthenticated");
-      router.push("/");
-    }
-  }, [router]);
+  const logout = useCallback(
+    async () => {
+      try {
+        await authApi.logout();
+      } catch {
+        /*
+         * Even if the backend logout request fails,
+         * clear the browser session locally.
+         */
+      } finally {
+        TokenStore.clear();
+
+        setUser(null);
+
+        setStatus(
+          "unauthenticated",
+        );
+
+        router.push("/");
+      }
+    },
+    [router],
+  );
 
   /* =========================================================
      ROLE
   ========================================================= */
 
-  const roleName = user?.role?.name;
+  const roleName =
+    user?.role?.name;
+
+  /*
+   * Member & Contributor use the SAME publishing flow.
+   *
+   * Therefore all of these can access the Author/Publishing
+   * dashboard:
+   *
+   * author
+   * member
+   * contributor
+   * admin
+   * super_admin
+   */
+
+  const isAuthor =
+    roleName === "author" ||
+    roleName === "member" ||
+    roleName === "contributor" ||
+    roleName === "admin" ||
+    roleName === "super_admin";
+
+  const isAdmin =
+    roleName === "admin" ||
+    roleName === "super_admin";
+
+  const isSuperAdmin =
+    roleName === "super_admin";
+
+  /* =========================================================
+     CONTEXT VALUE
+  ========================================================= */
 
   const value: AuthContextValue = {
     user,
     status,
 
-    /*
-     * Author access also applies to Admin and Super Admin.
-     * Member & Contributor will use the same publishing flow
-     * through the existing author/publishing access.
-     */
-    isAuthor:
-      roleName === "author" ||
-      roleName === "admin" ||
-      roleName === "super_admin",
+    isAuthor,
 
-    isAdmin:
-      roleName === "admin" ||
-      roleName === "super_admin",
+    isAdmin,
 
-    isSuperAdmin:
-      roleName === "super_admin",
+    isSuperAdmin,
 
     login,
+
     logout,
+
     refresh: loadUser,
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={value}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -198,7 +250,8 @@ export function AuthProvider({
 ========================================================= */
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
+  const ctx =
+    useContext(AuthContext);
 
   if (!ctx) {
     throw new Error(

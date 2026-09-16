@@ -2,13 +2,28 @@
 // exactly (see backend/apps/*/serializers.py) so the API layer needs no
 // translation. Field names match the JSON the backend actually returns.
 
-export type RoleName = "super_admin" | "admin" | "author" | "reader";
+/* =========================================================
+   ROLES
+========================================================= */
+
+export type RoleName =
+  | "super_admin"
+  | "admin"
+  | "author"
+  | "member"
+  | "contributor"
+  | "reader";
 
 export interface Role {
   id: number;
   name: RoleName;
   label: string;
+  description?: string;
 }
+
+/* =========================================================
+   PROFILE
+========================================================= */
 
 export interface Profile {
   full_name: string;
@@ -21,6 +36,10 @@ export interface Profile {
   website: string;
 }
 
+/* =========================================================
+   SUBSCRIBER APPLICATION
+========================================================= */
+
 export interface SubscriberApplication {
   application_id: string;
   channels_confirmed: string[];
@@ -28,17 +47,35 @@ export interface SubscriberApplication {
   created_at: string;
 }
 
+/* =========================================================
+   USER
+========================================================= */
+
 export interface User {
   id: number;
   email: string;
   username: string;
   slug: string | null;
+
   role: Role;
-  status: "active" | "suspended" | "pending";
+
+  status:
+    | "active"
+    | "suspended"
+    | "pending";
+
   profile: Profile;
-  subscriber_application?: SubscriberApplication | null;
+
+  subscriber_application?:
+    | SubscriberApplication
+    | null;
+
   date_joined: string;
 }
+
+/* =========================================================
+   CATEGORY
+========================================================= */
 
 export interface Category {
   id: number;
@@ -49,11 +86,19 @@ export interface Category {
   order?: number;
 }
 
+/* =========================================================
+   TAG
+========================================================= */
+
 export interface Tag {
   id: number;
   name: string;
   slug: string;
 }
+
+/* =========================================================
+   POST STATUS
+========================================================= */
 
 export type PostStatus =
   | "draft"
@@ -65,6 +110,10 @@ export type PostStatus =
   | "rejected"
   | "archived";
 
+/* =========================================================
+   APPROVAL EVENT
+========================================================= */
+
 export interface ApprovalEvent {
   id?: number;
   action: string;
@@ -73,6 +122,10 @@ export interface ApprovalEvent {
   created_at: string;
 }
 
+/* =========================================================
+   VIDEO
+========================================================= */
+
 export interface Video {
   id: number;
   title: string;
@@ -80,14 +133,28 @@ export interface Video {
   thumbnail_url: string;
   playback_url: string;
   duration_seconds: number | null;
-  status: "uploading" | "processing" | "ready" | "failed";
+
+  status:
+    | "uploading"
+    | "processing"
+    | "ready"
+    | "failed";
+
   created_at: string;
 }
+
+/* =========================================================
+   MEDIA
+========================================================= */
 
 export interface Media {
   id: number;
   post: number | null;
-  type: "image" | "document";
+
+  type:
+    | "image"
+    | "document";
+
   file_name: string;
   url: string;
   mime_type: string;
@@ -98,64 +165,109 @@ export interface Media {
   created_at: string;
 }
 
-/** List-view shape — matches PostListSerializer (no `content` field). */
+/* =========================================================
+   POST SUMMARY
+   List-view shape — matches PostListSerializer
+   (no `content` field)
+========================================================= */
+
 export interface PostSummary {
   id: number;
   title: string;
   slug: string;
   short_description: string;
   featured_image_url: string;
+
   author: User;
   category: Category;
+
   status: PostStatus;
+
   views: number;
+
   is_breaking: boolean;
   is_featured: boolean;
   is_trending: boolean;
+
   published_at: string | null;
   created_at: string;
 }
 
-/** Detail-view shape — matches PostDetailSerializer. */
-export interface Post extends Omit<PostSummary, "author" | "category"> {
+/* =========================================================
+   POST DETAIL
+   Detail-view shape — matches PostDetailSerializer
+========================================================= */
+
+export interface Post
+  extends Omit<
+    PostSummary,
+    "author" | "category"
+  > {
   content: string;
+
   author: User;
   category: Category;
+
   tags: Tag[];
+
   video?: Video | null;
+
   review_note: string;
+
   seo_title: string;
   seo_description: string;
+
   updated_at: string;
+
   approval_history: ApprovalEvent[];
 }
 
-/** A published post with a video attached — matches VideoFeedItemSerializer. */
+/* =========================================================
+   VIDEO FEED ITEM
+   Matches VideoFeedItemSerializer
+========================================================= */
+
 export interface VideoFeedItem {
   id: number;
   title: string;
   slug: string;
   short_description: string;
   featured_image_url: string;
+
   video: Video;
+
   category: Category;
   author: User;
+
   views: number;
+
   published_at: string | null;
   created_at: string;
 }
+
+/* =========================================================
+   POST WRITE PAYLOAD
+========================================================= */
 
 export interface PostWritePayload {
   title: string;
   short_description?: string;
   content: string;
   featured_image_url?: string;
+
   video?: number | null;
+
   category: number;
+
   tags?: number[];
+
   seo_title?: string;
   seo_description?: string;
 }
+
+/* =========================================================
+   COMMENT
+========================================================= */
 
 export interface Comment {
   id: number;
@@ -163,9 +275,19 @@ export interface Comment {
   user: User;
   parent: number | null;
   body: string;
-  status: "pending" | "approved" | "spam" | "rejected";
+
+  status:
+    | "pending"
+    | "approved"
+    | "spam"
+    | "rejected";
+
   created_at: string;
 }
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
 
 export interface Notification {
   id: number;
@@ -175,13 +297,21 @@ export interface Notification {
   created_at: string;
 }
 
-/** Wraps every DRF PageNumberPagination response. */
+/* =========================================================
+   PAGINATION
+   Wraps every DRF PageNumberPagination response.
+========================================================= */
+
 export interface Paginated<T> {
   count: number;
   next: string | null;
   previous: string | null;
   results: T[];
 }
+
+/* =========================================================
+   API ERROR
+========================================================= */
 
 export interface ApiErrorShape {
   detail?: string;
