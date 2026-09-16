@@ -4,7 +4,10 @@ import { apiClient } from "@/lib/api/client";
    TYPES
 ========================================================= */
 
-export type ApplicationStatus = "pending" | "approved" | "rejected";
+export type ApplicationStatus =
+  | "pending"
+  | "approved"
+  | "rejected";
 
 export type MemberContributorDocumentType =
   | "selfie"
@@ -17,14 +20,18 @@ export interface User {
   id: number;
   email: string;
   username: string;
+
   role?: {
     id: number;
     name: string;
     label: string;
     description?: string;
   } | null;
+
   status?: "active" | "suspended" | "pending";
+
   slug?: string | null;
+
   profile?: {
     full_name?: string;
     phone_number?: string;
@@ -46,7 +53,16 @@ export interface RegisterResponse {
   message?: string;
   user?: User;
   access?: string;
+
   application?: MemberContributorApplication;
+
+  /*
+   * Kept for compatibility with the existing
+   * subscriber registration/success flow.
+   */
+  subscriber_application?: {
+    application_id?: string;
+  };
 }
 
 export interface RegisterReaderPayload {
@@ -127,9 +143,10 @@ export interface MemberContributorApplication {
   status: ApplicationStatus;
 
   /*
-   * Kept for compatibility with the existing database/API.
-   * New Member & Contributor approvals should not use this
-   * as a separate access-role selector.
+   * Compatibility field.
+   *
+   * Member & Contributor currently share the same
+   * publishing-access flow in this project.
    */
   approved_role?: "member" | "contributor" | null;
 
@@ -211,7 +228,10 @@ function toFormData(
     }
 
     if (typeof value === "boolean") {
-      formData.append(key, value ? "true" : "false");
+      formData.append(
+        key,
+        value ? "true" : "false",
+      );
       return;
     }
 
@@ -228,14 +248,43 @@ function toFormData(
 export const authApi = {
   /* -------------------------------------------------------
      LOGIN
+
+     Supports:
+
+     authApi.login({
+       email,
+       password
+     })
+
+     and:
+
+     authApi.login(
+       email,
+       password
+     )
   ------------------------------------------------------- */
 
   async login(
-    email: string,
-    password: string,
+    payloadOrEmail:
+      | { email: string; password: string }
+      | string,
+    password?: string,
   ): Promise<LoginResponse> {
-    const normalizedEmail = String(email ?? "").trim();
-    const normalizedPassword = String(password ?? "");
+    const email =
+      typeof payloadOrEmail === "string"
+        ? payloadOrEmail
+        : payloadOrEmail.email;
+
+    const normalizedEmail = String(
+      email ?? "",
+    ).trim();
+
+    const normalizedPassword =
+      typeof payloadOrEmail === "string"
+        ? String(password ?? "")
+        : String(
+            payloadOrEmail.password ?? "",
+          );
 
     if (!normalizedEmail) {
       throw new Error("Email is required.");
@@ -245,13 +294,14 @@ export const authApi = {
       throw new Error("Password is required.");
     }
 
-    const { data } = await apiClient.post<LoginResponse>(
-      "/auth/login/",
-      {
-        email: normalizedEmail,
-        password: normalizedPassword,
-      },
-    );
+    const { data } =
+      await apiClient.post<LoginResponse>(
+        "/auth/login/",
+        {
+          email: normalizedEmail,
+          password: normalizedPassword,
+        },
+      );
 
     return data;
   },
@@ -306,13 +356,12 @@ export const authApi = {
 
   /* -------------------------------------------------------
      MEMBER & CONTRIBUTOR REGISTRATION
-
-     Uses multipart/form-data because documents/files
-     are uploaded to the backend/R2.
   ------------------------------------------------------- */
 
   async registerMemberApplication(
-    payload: FormData | Record<string, unknown>,
+    payload:
+      | FormData
+      | Record<string, unknown>,
   ): Promise<RegisterResponse> {
     const body =
       payload instanceof FormData
@@ -325,7 +374,8 @@ export const authApi = {
         body,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type":
+              "multipart/form-data",
           },
         },
       );
@@ -334,14 +384,17 @@ export const authApi = {
   },
 
   /* -------------------------------------------------------
-     ADMIN: LIST MEMBER & CONTRIBUTOR APPLICATIONS
+     ADMIN:
+     LIST MEMBER & CONTRIBUTOR APPLICATIONS
   ------------------------------------------------------- */
 
   async getMemberContributorApplications(): Promise<
     MemberContributorApplication[]
   > {
     const { data } =
-      await apiClient.get<MemberContributorApplication[]>(
+      await apiClient.get<
+        MemberContributorApplication[]
+      >(
         "/auth/member-contributor-applications/",
       );
 
@@ -349,11 +402,11 @@ export const authApi = {
   },
 
   /* -------------------------------------------------------
-     ADMIN: APPROVE MEMBER & CONTRIBUTOR
+     ADMIN:
+     APPROVE MEMBER & CONTRIBUTOR
 
-     IMPORTANT:
-     There is NO separate member/contributor access role.
-     Both use the same publishing access flow.
+     There is no separate publishing-access system
+     for Member vs Contributor in the current project.
   ------------------------------------------------------- */
 
   async approveMemberContributorApplication(
@@ -369,7 +422,8 @@ export const authApi = {
   },
 
   /* -------------------------------------------------------
-     ADMIN: REJECT MEMBER & CONTRIBUTOR
+     ADMIN:
+     REJECT MEMBER & CONTRIBUTOR
   ------------------------------------------------------- */
 
   async rejectMemberContributorApplication(
@@ -388,7 +442,8 @@ export const authApi = {
   },
 
   /* -------------------------------------------------------
-     ADMIN: VIEW PRIVATE APPLICATION DOCUMENT
+     ADMIN:
+     VIEW PRIVATE APPLICATION DOCUMENT
   ------------------------------------------------------- */
 
   async getMemberContributorDocument(
@@ -409,7 +464,9 @@ export const authApi = {
 
   async me(): Promise<User> {
     const { data } =
-      await apiClient.get<User>("/auth/me/");
+      await apiClient.get<User>(
+        "/auth/me/",
+      );
 
     return data;
   },
@@ -432,59 +489,160 @@ export const authApi = {
 
   /* -------------------------------------------------------
      CHANGE PASSWORD
+
+     Supports:
+
+     authApi.changePassword({
+       current_password,
+       new_password
+     })
+
+     and:
+
+     authApi.changePassword(
+       currentPassword,
+       newPassword
+     )
   ------------------------------------------------------- */
 
   async changePassword(
-    payload: ChangePasswordPayload,
-  ): Promise<{ message?: string }> {
+    payloadOrCurrentPassword:
+      | ChangePasswordPayload
+      | string,
+    newPassword?: string,
+  ): Promise<{ message: string }> {
+    const payload: ChangePasswordPayload =
+      typeof payloadOrCurrentPassword ===
+      "string"
+        ? {
+            current_password:
+              payloadOrCurrentPassword,
+            new_password:
+              newPassword ?? "",
+          }
+        : payloadOrCurrentPassword;
+
     const { data } =
-      await apiClient.post<{ message?: string }>(
+      await apiClient.post<{
+        message?: string;
+      }>(
         "/auth/change-password/",
         payload,
       );
 
-    return data;
+    return {
+      message:
+        data?.message ??
+        "Password changed successfully.",
+    };
   },
 
   /* -------------------------------------------------------
      FORGOT PASSWORD
+
+     Supports:
+
+     authApi.forgotPassword({
+       email
+     })
+
+     and:
+
+     authApi.forgotPassword(email)
   ------------------------------------------------------- */
 
   async forgotPassword(
-    payload: ForgotPasswordPayload,
-  ): Promise<{ message?: string }> {
+    payloadOrEmail:
+      | ForgotPasswordPayload
+      | string,
+  ): Promise<{ message: string }> {
+    const payload: ForgotPasswordPayload =
+      typeof payloadOrEmail ===
+      "string"
+        ? {
+            email: payloadOrEmail,
+          }
+        : payloadOrEmail;
+
     const { data } =
-      await apiClient.post<{ message?: string }>(
+      await apiClient.post<{
+        message?: string;
+      }>(
         "/auth/forgot-password/",
         payload,
       );
 
-    return data;
+    return {
+      message:
+        data?.message ??
+        "If an account exists for this email, a password reset link has been sent.",
+    };
   },
 
   /* -------------------------------------------------------
      RESET PASSWORD
+
+     Supports:
+
+     authApi.resetPassword({
+       uid,
+       token,
+       new_password
+     })
+
+     and:
+
+     authApi.resetPassword(
+       uid,
+       token,
+       newPassword
+     )
   ------------------------------------------------------- */
 
   async resetPassword(
-    payload: ResetPasswordPayload,
-  ): Promise<{ message?: string }> {
+    payloadOrUid:
+      | ResetPasswordPayload
+      | string,
+    token?: string,
+    newPassword?: string,
+  ): Promise<{ message: string }> {
+    const payload: ResetPasswordPayload =
+      typeof payloadOrUid ===
+      "string"
+        ? {
+            uid: payloadOrUid,
+            token: token ?? "",
+            new_password:
+              newPassword ?? "",
+          }
+        : payloadOrUid;
+
     const { data } =
-      await apiClient.post<{ message?: string }>(
+      await apiClient.post<{
+        message?: string;
+      }>(
         "/auth/reset-password/",
         payload,
       );
 
-    return data;
+    return {
+      message:
+        data?.message ??
+        "Password reset successfully.",
+    };
   },
 
   /* -------------------------------------------------------
      LOGOUT
   ------------------------------------------------------- */
 
-  async logout(): Promise<{ message?: string }> {
+  async logout(): Promise<{
+    message?: string;
+  }> {
     const { data } =
-      await apiClient.post<{ message?: string }>(
+      await apiClient.post<{
+        message?: string;
+      }>(
         "/auth/logout/",
       );
 
