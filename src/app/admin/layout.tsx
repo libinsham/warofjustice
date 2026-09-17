@@ -10,6 +10,7 @@ import {
   UsersRound,
   FolderTree,
   Settings,
+  BookOpen,
 } from "lucide-react";
 
 import { QueryProvider } from "@/providers/query-provider";
@@ -40,6 +41,11 @@ const ADMIN_NAV: SidebarItem[] = [
     href: "/admin/media",
     label: "Media Library",
     icon: ImageIcon,
+  },
+  {
+    href: "/admin/emagazine",
+    label: "E-Magazine",
+    icon: BookOpen,
   },
   {
     href: "/admin/authors",
