@@ -41,7 +41,7 @@ export default async function HomePage() {
   const feed = feedRes.results;
   const hero = feed[0];
   const topStories = feed.slice(1, 5);
-  const latest = feed.slice(5, 11);
+ const latest = feed.slice(0, 6);
   const trending = trendingRes.results.slice(0, 5);
 
   return (
