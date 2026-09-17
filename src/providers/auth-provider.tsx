@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -45,17 +46,52 @@ export function AuthProvider({
 
   const router = useRouter();
 
+  /*
+   * ---------------------------------------------------------
+   * AUTH OPERATION VERSION
+   * ---------------------------------------------------------
+   *
+   * Prevents an older /auth/me() request from overwriting
+   * a newer login or logout operation.
+   */
+  const authOperationRef = useRef(0);
+
   /* =========================================================
      LOAD CURRENT USER
   ========================================================= */
 
   const loadUser = useCallback(async () => {
+    const operationId =
+      ++authOperationRef.current;
+
     try {
       const me = await authApi.me();
+
+      /*
+       * Ignore this response when a newer auth operation
+       * (login/logout/refresh) has already started.
+       */
+      if (
+        operationId !==
+        authOperationRef.current
+      ) {
+        return;
+      }
 
       setUser(me as User);
       setStatus("authenticated");
     } catch {
+      /*
+       * Do not allow an old request to clear a newer
+       * authenticated session.
+       */
+      if (
+        operationId !==
+        authOperationRef.current
+      ) {
+        return;
+      }
+
       TokenStore.clear();
       setUser(null);
       setStatus("unauthenticated");
@@ -72,6 +108,11 @@ export function AuthProvider({
     }
 
     const handleExpired = () => {
+      /*
+       * Invalidate all older auth operations.
+       */
+      ++authOperationRef.current;
+
       TokenStore.clear();
       setUser(null);
       setStatus("unauthenticated");
@@ -102,6 +143,12 @@ export function AuthProvider({
       email: string,
       password: string,
     ) => {
+      /*
+       * This makes this login the newest auth operation.
+       */
+      const operationId =
+        ++authOperationRef.current;
+
       const response =
         await authApi.login(
           email,
@@ -142,6 +189,22 @@ export function AuthProvider({
         );
       }
 
+      /*
+       * Make sure this login is still the newest
+       * authentication operation.
+       */
+      if (
+        operationId !==
+        authOperationRef.current
+      ) {
+        return;
+      }
+
+      /*
+       * Update global auth state immediately.
+       *
+       * SiteHeader will re-render automatically.
+       */
       setUser(
         loggedInUser as User,
       );
@@ -159,11 +222,16 @@ export function AuthProvider({
 
   const logout = useCallback(
     async () => {
+      /*
+       * Invalidate any older auth requests immediately.
+       */
+      ++authOperationRef.current;
+
       try {
         await authApi.logout();
       } catch {
         /*
-         * Even if the backend logout request fails,
+         * Even if backend logout fails,
          * clear the browser session locally.
          */
       } finally {

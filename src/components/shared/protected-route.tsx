@@ -14,13 +14,18 @@ import { useAuth } from "@/providers/auth-provider";
  * - author
  * - admin
  * - super_admin
+ * - subscriber
  */
 export function ProtectedRoute({
   children,
   requireRole,
 }: {
   children: React.ReactNode;
-  requireRole: "author" | "admin" | "super_admin";
+  requireRole:
+    | "author"
+    | "admin"
+    | "super_admin"
+    | "subscriber";
 }) {
   const {
     user,
@@ -87,8 +92,8 @@ export function ProtectedRoute({
   }, [status, user, refresh]);
 
   /*
-   * Determine access from the actual authenticated user
-   * as well as the AuthProvider role helpers.
+   * Determine access from the authenticated user and
+   * the existing AuthProvider role helpers.
    */
   const roleName = user?.role?.name;
 
@@ -97,7 +102,9 @@ const allowed =
     ? isAuthor
     : requireRole === "admin"
       ? isAdmin
-      : isSuperAdmin;
+      : requireRole === "super_admin"
+        ? isSuperAdmin
+        : String(roleName) === "subscriber";
 
   /*
    * Redirect only after the session check has completed.
