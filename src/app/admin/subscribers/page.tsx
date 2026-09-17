@@ -5,8 +5,6 @@ import {
   Search,
   Filter,
   X,
-  Check,
-  XCircle,
   Mail,
   Phone,
   CalendarDays,
@@ -19,9 +17,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { apiClient } from "@/lib/api/client";
-
-type SubscriberStatus = "pending" | "approved" | "rejected";
+type SubscriberStatus = "active" | "suspended";
 
 interface ApiSubscriber {
   id: number;
@@ -59,11 +55,34 @@ interface Subscriber {
 |--------------------------------------------------------------------------
 */
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://api.warofjustice.news/api/v1";
+
 /*
 |--------------------------------------------------------------------------
 | HELPERS
 |--------------------------------------------------------------------------
 */
+
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  /*
+   * Try the common token names used by the existing frontend.
+   * If your login system uses one of these, it will automatically work.
+   */
+  return (
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("access") ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("access_token") ||
+    sessionStorage.getItem("access") ||
+    sessionStorage.getItem("token")
+  );
+}
 
 function formatDate(dateString: string): string {
   if (!dateString) return "-";
@@ -93,27 +112,23 @@ function getInitials(name: string): string {
 
 function getStatusClasses(status: SubscriberStatus) {
   switch (status) {
-    case "approved":
-      return "bg-green-50 text-green-700 border-green-200";
-
-    case "rejected":
+    case "suspended":
       return "bg-red-50 text-red-700 border-red-200";
 
+    case "active":
     default:
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-green-50 text-green-700 border-green-200";
   }
 }
 
 function getStatusLabel(status: SubscriberStatus) {
   switch (status) {
-    case "approved":
-      return "Approved";
+    case "suspended":
+      return "Suspended";
 
-    case "rejected":
-      return "Rejected";
-
+    case "active":
     default:
-      return "Pending";
+      return "Active";
   }
 }
 
@@ -145,7 +160,10 @@ function mapApiSubscriber(item: ApiSubscriber): Subscriber {
 
     submittedAt: formatDate(item.created_at),
 
-    status: item.status,
+    status:
+      item.status === "suspended"
+        ? "suspended"
+        : "active",
 
     interests: Array.isArray(item.channels_confirmed)
       ? item.channels_confirmed
@@ -199,32 +217,61 @@ export default function SubscribersPage() {
     try {
       setError("");
 
-      /*
-       * Use the shared Axios client.
-       *
-       * apiClient automatically adds the access token from TokenStore
-       * as an Authorization: Bearer header and sends credentials/cookies.
-       */
-      const response = await apiClient.get(
-        "/auth/subscriber-applications/",
+      const token = getAccessToken();
+
+      const headers: HeadersInit = {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/auth/subscriber-applications/`,
         {
-          params: {
-            page_size: 100,
-          },
+          method: "GET",
+          headers,
+          credentials: "include",
+          cache: "no-store",
         }
       );
 
-      const data = response.data;
+      if (!response.ok) {
+        let errorMessage = `Request failed with status ${response.status}`;
+
+        try {
+          const errorData = await response.json();
+
+          if (errorData?.detail) {
+            errorMessage = errorData.detail;
+          }
+        } catch {
+          // Ignore JSON parsing error
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
 
       /*
-       * Supports both a plain array and Django REST Framework pagination:
+       * Supports both:
        *
-       * [ {...}, {...} ]
+       * [
+       *   {...},
+       *   {...}
+       * ]
        *
-       * or
+       * and DRF pagination:
        *
-       * { count: 3, results: [...] }
+       * {
+       *   "count": 3,
+       *   "results": [...]
+       * }
        */
+
       const apiResults: ApiSubscriber[] = Array.isArray(data)
         ? data
         : Array.isArray(data?.results)
@@ -304,27 +351,22 @@ export default function SubscribersPage() {
 
   const totalCount = subscribers.length;
 
-  const pendingCount = subscribers.filter(
-    (subscriber) => subscriber.status === "pending"
+  const activeCount = subscribers.filter(
+    (subscriber) => subscriber.status === "active"
   ).length;
 
-  const approvedCount = subscribers.filter(
-    (subscriber) => subscriber.status === "approved"
-  ).length;
-
-  const rejectedCount = subscribers.filter(
-    (subscriber) => subscriber.status === "rejected"
+  const suspendedCount = subscribers.filter(
+    (subscriber) => subscriber.status === "suspended"
   ).length;
 
   /*
   |--------------------------------------------------------------------------
-  | LOCAL STATUS UPDATE
+  | SUBSCRIBER STATUS
   |
-  | IMPORTANT:
-  | Your current Django urls.py only exposes the subscriber application
-  | LIST endpoint. There is currently no approve/reject URL.
-  |
-  | Therefore these buttons should NOT pretend to update the database.
+  | Subscriber registration is automatic.
+  | There is no approval/rejection workflow for subscribers.
+  | The backend exposes the account status from User.status:
+  |   active / suspended
   |--------------------------------------------------------------------------
   */
 
@@ -359,7 +401,7 @@ export default function SubscribersPage() {
                   </h1>
 
                   <p className="mt-1 text-sm text-gray-500">
-                    Manage subscriber applications and approvals.
+                    Manage active subscribers and account status.
                   </p>
                 </div>
               </div>
@@ -381,7 +423,7 @@ export default function SubscribersPage() {
               </button>
 
               <div className="text-sm text-gray-500">
-                {filteredSubscribers.length} application
+                {filteredSubscribers.length} subscriber
                 {filteredSubscribers.length !== 1 ? "s" : ""}
               </div>
             </div>
@@ -434,21 +476,21 @@ export default function SubscribersPage() {
           />
 
           <StatCard
-            title="Pending Review"
-            value={pendingCount}
-            description="Awaiting approval"
+            title="Active Subscribers"
+            value={activeCount}
+            description="Currently active"
           />
 
           <StatCard
-            title="Approved"
-            value={approvedCount}
-            description="Active subscribers"
+            title="Suspended"
+            value={suspendedCount}
+            description="Account suspended"
           />
 
           <StatCard
-            title="Rejected"
-            value={rejectedCount}
-            description="Rejected applications"
+            title="Subscriber Accounts"
+            value={totalCount}
+            description="Registered accounts"
           />
         </div>
 
@@ -496,16 +538,12 @@ export default function SubscribersPage() {
                   All Status
                 </option>
 
-                <option value="pending">
-                  Pending
+                <option value="active">
+                  Active
                 </option>
 
-                <option value="approved">
-                  Approved
-                </option>
-
-                <option value="rejected">
-                  Rejected
+                <option value="suspended">
+                  Suspended
                 </option>
               </select>
             </div>
@@ -711,11 +749,11 @@ export default function SubscribersPage() {
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
-                  Subscriber Application
+                  Subscriber
                 </p>
 
                 <h2 className="mt-1 text-xl font-bold text-gray-900">
-                  Review Application
+                  Subscriber Details
                 </h2>
               </div>
 
@@ -852,7 +890,7 @@ export default function SubscribersPage() {
                 </div>
               )}
 
-              {/* Application Reason */}
+              {/* Registration Details */}
               {selectedSubscriber.reason && (
                 <div className="mt-7">
                   <div className="flex items-center gap-2">
@@ -862,7 +900,7 @@ export default function SubscribersPage() {
                     />
 
                     <h4 className="text-sm font-semibold text-gray-900">
-                      Application Reason
+                      Registration Details
                     </h4>
                   </div>
 
@@ -877,7 +915,7 @@ export default function SubscribersPage() {
               {/* Current Status */}
               <div className="mt-7">
                 <h4 className="text-sm font-semibold text-gray-900">
-                  Application Status
+                  Account Status
                 </h4>
 
                 <div className="mt-3">
@@ -899,46 +937,13 @@ export default function SubscribersPage() {
             =================================================== */}
 
             <div className="border-t border-gray-200 bg-white px-6 py-5">
-              {selectedSubscriber.status ===
-              "pending" ? (
-                <div>
-                  <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-                    Approval/rejection API is not yet
-                    configured in the current Django
-                    URLs. These buttons will be connected
-                    after the backend approve/reject
-                    endpoints are added.
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      disabled
-                      className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 opacity-60"
-                    >
-                      <XCircle size={18} />
-                      Reject
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled
-                      className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white opacity-60"
-                    >
-                      <Check size={18} />
-                      Approve
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={closeDrawer}
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                >
-                  Close
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={closeDrawer}
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Close
+              </button>
             </div>
           </aside>
         </div>
