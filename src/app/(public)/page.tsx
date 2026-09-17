@@ -9,11 +9,22 @@ import { postsApi } from "@/lib/api/posts";
 import { categoriesApi } from "@/lib/api/categories";
 import type { PostSummary } from "@/types";
 
-// Server Component — fetched at request time so published content is
-// always current; swap to `revalidate` if you want ISR caching instead.
+/*
+ * Always fetch fresh homepage data.
+ *
+ * This prevents the homepage from serving an older cached version
+ * after posts are published, updated, or deleted.
+ */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// Server Component
 export default async function HomePage() {
   const [feedRes, breakingRes, trendingRes, categories] =
     await Promise.all([
+      /*
+       * Main published feed
+       */
       postsApi.listPublished({ page: 1 }).catch(() => ({
         results: [] as PostSummary[],
         count: 0,
@@ -21,6 +32,9 @@ export default async function HomePage() {
         previous: null,
       })),
 
+      /*
+       * Breaking news
+       */
       postsApi.listPublished({ breaking: true }).catch(() => ({
         results: [] as PostSummary[],
         count: 0,
@@ -28,6 +42,9 @@ export default async function HomePage() {
         previous: null,
       })),
 
+      /*
+       * Trending news
+       */
       postsApi.listPublished({ trending: true }).catch(() => ({
         results: [] as PostSummary[],
         count: 0,
@@ -35,13 +52,42 @@ export default async function HomePage() {
         previous: null,
       })),
 
+      /*
+       * Categories
+       */
       categoriesApi.list().catch(() => []),
     ]);
 
+  /*
+   * ----------------------------------------------------------
+   * HOMEPAGE DATA
+   * ----------------------------------------------------------
+   */
+
   const feed = feedRes.results;
+
+  /*
+   * First published post becomes the hero.
+   */
   const hero = feed[0];
+
+  /*
+   * Posts 2-5 become Top Stories.
+   */
   const topStories = feed.slice(1, 5);
- const latest = feed.slice(0, 6);
+
+  /*
+   * Show the newest published posts in Latest News.
+   *
+   * Using slice(0, 6) is intentional:
+   * even when there is only 1-5 published posts,
+   * they will still appear in Latest News.
+   */
+  const latest = feed.slice(0, 6);
+
+  /*
+   * Trending section.
+   */
   const trending = trendingRes.results.slice(0, 5);
 
   return (
@@ -55,11 +101,19 @@ export default async function HomePage() {
       {/* MAIN WAR OF JUSTICE HOMEPAGE             */}
       {/* ========================================= */}
       <div className="mx-auto max-w-7xl px-4 py-6">
+        {/* ========================================= */}
+        {/* BREAKING NEWS                           */}
+        {/* ========================================= */}
         <BreakingTicker posts={breakingRes.results} />
 
-        {/* Hero + Top Stories */}
+        {/* ========================================= */}
+        {/* HERO + TOP STORIES                      */}
+        {/* ========================================= */}
         {hero && (
           <section className="mt-6 grid gap-6 lg:grid-cols-3">
+            {/* ===================================== */}
+            {/* HERO                                  */}
+            {/* ===================================== */}
             <div className="lg:col-span-2">
               <Link
                 href={`/article/${hero.slug}`}
@@ -76,64 +130,88 @@ export default async function HomePage() {
                     />
                   )}
 
+                  {/* Hero overlay */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                    {/* Category */}
                     <span className="rounded bg-primary px-2 py-0.5 text-xs font-bold uppercase text-primary-foreground">
                       {hero.category?.name}
                     </span>
 
+                    {/* Title */}
                     <h1 className="mt-2 text-2xl font-black leading-tight text-white md:text-3xl">
                       {hero.title}
                     </h1>
 
-                    <p className="mt-2 line-clamp-2 text-sm text-white/80">
-                      {hero.short_description}
-                    </p>
+                    {/* Summary */}
+                    {hero.short_description && (
+                      <p className="mt-2 line-clamp-2 text-sm text-white/80">
+                        {hero.short_description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>
             </div>
 
+            {/* ===================================== */}
+            {/* TOP STORIES                           */}
+            {/* ===================================== */}
             <aside>
               <h2 className="mb-3 border-b-2 border-primary pb-2 text-sm font-black uppercase tracking-wide">
                 Top Stories
               </h2>
 
               <div className="space-y-4">
-                {topStories.map((post) => (
-                  <NewsCard
-                    key={post.id}
-                    post={post}
-                    variant="horizontal"
-                  />
-                ))}
+                {topStories.length > 0 ? (
+                  topStories.map((post) => (
+                    <NewsCard
+                      key={post.id}
+                      post={post}
+                      variant="horizontal"
+                    />
+                  ))
+                ) : (
+                  <p className="py-4 text-sm text-muted-foreground">
+                    More top stories coming soon.
+                  </p>
+                )}
               </div>
             </aside>
           </section>
         )}
 
-        {/* Latest News */}
-        <section className="mt-12">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-black uppercase tracking-wide">
-              Latest News
-            </h2>
+        {/* ========================================= */}
+        {/* LATEST NEWS                             */}
+        {/* ========================================= */}
+        {latest.length > 0 && (
+          <section className="mt-12">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-black uppercase tracking-wide">
+                Latest News
+              </h2>
 
-            <Link
-              href="/latest"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
-              View All →
-            </Link>
-          </div>
+              <Link
+                href="/latest"
+                className="text-sm font-semibold text-primary hover:underline"
+              >
+                View All →
+              </Link>
+            </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {latest.map((post) => (
-              <NewsCard key={post.id} post={post} />
-            ))}
-          </div>
-        </section>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latest.map((post) => (
+                <NewsCard
+                  key={post.id}
+                  post={post}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* Explore Categories */}
+        {/* ========================================= */}
+        {/* EXPLORE CATEGORIES                      */}
+        {/* ========================================= */}
         {categories.length > 0 && (
           <section className="mt-12">
             <h2 className="mb-4 text-lg font-black uppercase tracking-wide">
@@ -154,7 +232,9 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Trending Now */}
+        {/* ========================================= */}
+        {/* TRENDING NOW                           */}
+        {/* ========================================= */}
         {trending.length > 0 && (
           <section className="mt-12 rounded-xl bg-muted/40 p-6">
             <h2 className="mb-4 text-lg font-black uppercase tracking-wide">
@@ -163,7 +243,10 @@ export default async function HomePage() {
 
             <ol className="space-y-4">
               {trending.map((post, i) => (
-                <li key={post.id} className="flex gap-4">
+                <li
+                  key={post.id}
+                  className="flex gap-4"
+                >
                   <span className="text-2xl font-black text-primary/40">
                     {String(i + 1).padStart(2, "0")}
                   </span>
@@ -180,7 +263,9 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Newsletter */}
+        {/* ========================================= */}
+        {/* NEWSLETTER                              */}
+        {/* ========================================= */}
         <section className="mt-12 rounded-xl bg-neutral-950 p-8 text-white">
           <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
             <div>
