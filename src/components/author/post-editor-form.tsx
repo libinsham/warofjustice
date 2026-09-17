@@ -73,9 +73,26 @@ export function PostEditorForm({
 
   const [isSaving, setIsSaving] = useState(false);
 
+  /*
+   * Actual featured image URL.
+   *
+   * This can be:
+   * - the R2 public URL returned after upload
+   * - a manually entered public image URL
+   */
   const [featuredImageUrl, setFeaturedImageUrl] = useState(
     existingPost?.featured_image_url ?? ""
   );
+
+  /*
+   * Manual "Paste Image URL" input.
+   *
+   * IMPORTANT:
+   * This is intentionally separate from featuredImageUrl.
+   * Therefore an R2 upload will NOT automatically appear
+   * inside the manual URL textbox.
+   */
+  const [manualImageUrl, setManualImageUrl] = useState("");
 
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -99,13 +116,14 @@ export function PostEditorForm({
   // FORM
   // ==============================
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<PostFormValues>({
+const {
+  register,
+  handleSubmit,
+  watch,
+  setValue,
+  formState: { errors },
+} = useForm<PostFormValues>({
+
     resolver: zodResolver(postSchema),
 
     defaultValues: existingPost
@@ -140,9 +158,9 @@ export function PostEditorForm({
   // RICH TEXT EDITOR
   // ==============================
 
-  register("content");
+register("content");
 
-  const contentValue = watch("content") ?? "";
+const contentValue = watch("content") ?? "";
 
 
   // ==============================
@@ -164,12 +182,28 @@ export function PostEditorForm({
       const media = await mediaApi.uploadImage(file);
 
       if (!media?.url) {
-        throw new Error("Image upload failed. No image URL was returned.");
+        throw new Error(
+          "Image upload failed. No image URL was returned."
+        );
       }
 
+      /*
+       * Store the actual R2 public URL for the featured image.
+       */
       setFeaturedImageUrl(media.url);
+
+      /*
+       * IMPORTANT:
+       * Do not put the uploaded R2 URL into the
+       * manual "Paste Image URL" field.
+       */
+      setManualImageUrl("");
+
     } catch (error) {
-      console.error("Cloudflare R2 upload error:", error);
+      console.error(
+        "Cloudflare R2 upload error:",
+        error
+      );
 
       setImageError(
         "Image upload to Cloudflare R2 failed. You can still paste an external image URL below."
@@ -177,7 +211,9 @@ export function PostEditorForm({
     } finally {
       setUploadingImage(false);
 
-      // Allow selecting the same file again if needed
+      /*
+       * Allow selecting the same file again if needed.
+       */
       e.target.value = "";
     }
   };
@@ -190,7 +226,18 @@ export function PostEditorForm({
   const handleImageUrlChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setFeaturedImageUrl(e.target.value);
+    const value = e.target.value;
+
+    /*
+     * This field is only the manual URL input.
+     */
+    setManualImageUrl(value);
+
+    /*
+     * The manually entered URL becomes the actual
+     * featured image URL used by the post.
+     */
+    setFeaturedImageUrl(value);
 
     setImageError("");
 
@@ -204,6 +251,7 @@ export function PostEditorForm({
 
   const removeFeaturedImage = () => {
     setFeaturedImageUrl("");
+    setManualImageUrl("");
 
     setImageError("");
 
@@ -225,7 +273,8 @@ export function PostEditorForm({
       const payload = {
         ...data,
 
-        featured_image_url: featuredImageUrl.trim(),
+        featured_image_url:
+          featuredImageUrl.trim(),
       };
 
 
@@ -243,12 +292,17 @@ export function PostEditorForm({
 
 
       router.push("/author/posts");
+
     } catch (error) {
-      console.error("Error saving post:", error);
+      console.error(
+        "Error saving post:",
+        error
+      );
 
       alert(
         "Unable to save the post. Please check your details and try again."
       );
+
     } finally {
       setIsSaving(false);
     }
@@ -526,12 +580,15 @@ export function PostEditorForm({
 
                 <Input
                   id="featured-image-url"
-
                   type="url"
-
                   placeholder="https://example.com/image.jpg"
 
-                  value={featuredImageUrl}
+                  /*
+                   * IMPORTANT:
+                   * This input is now completely independent
+                   * from the R2 upload result.
+                   */
+                  value={manualImageUrl}
 
                   disabled={isLocked}
 
