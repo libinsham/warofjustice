@@ -267,12 +267,12 @@ export function SiteHeader() {
             <h1
               className="
                 truncate
-                text-[30px]
+                text-[32px]
                 font-black
                 leading-none
                 tracking-tight
-                sm:text-[38px]
-                lg:text-[50px]
+                sm:text-[40px]
+                lg:text-[52px]
               "
             >
               WAR{" "}
