@@ -171,6 +171,37 @@ export interface MemberContributorRejectResponse {
   application: MemberContributorApplication;
 }
 
+/* =========================================================
+   SUBSCRIBER APPLICATION
+   ADMIN LIST
+========================================================= */
+
+export interface SubscriberApplication {
+  id: number;
+  application_id: string;
+
+  name: string;
+  email: string;
+  phone: string;
+
+  whatsapp_number?: string | null;
+  website?: string | null;
+
+  channels_confirmed: string[];
+  declaration_confirmed: boolean;
+
+  /*
+   * Backend currently uses:
+   * pending | verified
+   *
+   * Keep this as string for now because the frontend
+   * approve/reject workflow has not yet been connected.
+   */
+  status: string;
+
+  created_at: string;
+}
+
 export interface UpdateProfilePayload {
   username?: string;
   bio?: string;
@@ -396,6 +427,27 @@ export const authApi = {
         MemberContributorApplication[]
       >(
         "/auth/member-contributor-applications/",
+      );
+
+    return data;
+  },
+
+  /* -------------------------------------------------------
+     ADMIN:
+     LIST SUBSCRIBER APPLICATIONS
+
+     GET:
+     /api/v1/auth/subscriber-applications/
+  ------------------------------------------------------- */
+
+  async getSubscriberApplications(): Promise<
+    SubscriberApplication[]
+  > {
+    const { data } =
+      await apiClient.get<
+        SubscriberApplication[]
+      >(
+        "/auth/subscriber-applications/",
       );
 
     return data;
