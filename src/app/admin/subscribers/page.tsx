@@ -19,6 +19,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import { apiClient } from "@/lib/api/client";
+
 type SubscriberStatus = "pending" | "approved" | "rejected";
 
 interface ApiSubscriber {
@@ -57,34 +59,11 @@ interface Subscriber {
 |--------------------------------------------------------------------------
 */
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.warofjustice.news/api/v1";
-
 /*
 |--------------------------------------------------------------------------
 | HELPERS
 |--------------------------------------------------------------------------
 */
-
-function getAccessToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  /*
-   * Try the common token names used by the existing frontend.
-   * If your login system uses one of these, it will automatically work.
-   */
-  return (
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("access") ||
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("access_token") ||
-    sessionStorage.getItem("access") ||
-    sessionStorage.getItem("token")
-  );
-}
 
 function formatDate(dateString: string): string {
   if (!dateString) return "-";
@@ -220,61 +199,32 @@ export default function SubscribersPage() {
     try {
       setError("");
 
-      const token = getAccessToken();
-
-      const headers: HeadersInit = {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/auth/subscriber-applications/`,
+      /*
+       * Use the shared Axios client.
+       *
+       * apiClient automatically adds the access token from TokenStore
+       * as an Authorization: Bearer header and sends credentials/cookies.
+       */
+      const response = await apiClient.get(
+        "/auth/subscriber-applications/",
         {
-          method: "GET",
-          headers,
-          credentials: "include",
-          cache: "no-store",
+          params: {
+            page_size: 100,
+          },
         }
       );
 
-      if (!response.ok) {
-        let errorMessage = `Request failed with status ${response.status}`;
-
-        try {
-          const errorData = await response.json();
-
-          if (errorData?.detail) {
-            errorMessage = errorData.detail;
-          }
-        } catch {
-          // Ignore JSON parsing error
-        }
-
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       /*
-       * Supports both:
+       * Supports both a plain array and Django REST Framework pagination:
        *
-       * [
-       *   {...},
-       *   {...}
-       * ]
+       * [ {...}, {...} ]
        *
-       * and DRF pagination:
+       * or
        *
-       * {
-       *   "count": 3,
-       *   "results": [...]
-       * }
+       * { count: 3, results: [...] }
        */
-
       const apiResults: ApiSubscriber[] = Array.isArray(data)
         ? data
         : Array.isArray(data?.results)
