@@ -23,7 +23,7 @@ const SUBSCRIBER_NAV: SidebarItem[] = [
     icon: LayoutDashboard,
   },
   {
-    href: "/subscriber/dashboard#emagazines",
+    href: "/subscriber/emagazine",
     label: "e-Magazine",
     icon: BookOpen,
   },
