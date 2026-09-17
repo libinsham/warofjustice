@@ -98,6 +98,16 @@ type SubscribeFormValues =
   z.infer<typeof subscribeSchema>;
 
 /* ==========================================================================
+   AUTH RESPONSE SHAPE
+   ========================================================================== */
+
+type SubscriberApplicationShape = {
+  subscriber_application?: {
+    application_id?: string;
+  };
+};
+
+/* ==========================================================================
    ERROR TEXT
    ========================================================================== */
 
@@ -217,6 +227,10 @@ export default function SubscribePage() {
     setSubscriberSubmitting(true);
 
     try {
+      /* ------------------------------------------------------------ */
+      /* REGISTER SUBSCRIBER                                          */
+      /* ------------------------------------------------------------ */
+
       const user =
         await authApi.registerSubscriber({
           ...data,
@@ -228,11 +242,41 @@ export default function SubscribePage() {
             subscriberDeclared,
         });
 
+      /* ------------------------------------------------------------ */
+      /* REFRESH GLOBAL AUTH SESSION                                  */
+      /* ------------------------------------------------------------ */
+
       await refresh();
 
-      const applicationId =
-        user.subscriber_application
+      /* ------------------------------------------------------------ */
+      /* GET APPLICATION ID                                           */
+      /*                                                            */
+      /* The backend creates the SubscriberApplication and generates */
+      /* WOJ-YYYY-XXXXX. Prefer the registration response, but if   */
+      /* it does not contain the nested application information,    */
+      /* fetch the current authenticated user again.                */
+      /* ------------------------------------------------------------ */
+
+      let applicationId =
+        (user as SubscriberApplicationShape)
+          .subscriber_application
           ?.application_id ?? "";
+
+      if (!applicationId) {
+        const currentUser =
+          await authApi.me();
+
+        applicationId =
+          (
+            currentUser as SubscriberApplicationShape
+          )
+            .subscriber_application
+            ?.application_id ?? "";
+      }
+
+      /* ------------------------------------------------------------ */
+      /* SUCCESS PAGE                                                 */
+      /* ------------------------------------------------------------ */
 
       router.push(
         `/subscribe/success?id=${encodeURIComponent(
@@ -267,6 +311,7 @@ export default function SubscribePage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white via-white to-gray-50 px-3 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-4xl">
+
         {/* ================================================================
             PAGE HEADER
             ================================================================ */}
@@ -292,12 +337,14 @@ export default function SubscribePage() {
             ================================================================ */}
 
         <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
           {/* -------------------------------------------------------------- */}
           {/* HEADER                                                          */}
           {/* -------------------------------------------------------------- */}
 
           <div className="bg-gradient-to-r from-red-800 to-red-700 px-5 py-6 text-white sm:px-8">
             <div className="flex items-start gap-3">
+
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
                 <UserPlus className="h-5 w-5" />
               </div>
@@ -316,6 +363,7 @@ export default function SubscribePage() {
                   and follow our official channels.
                 </p>
               </div>
+
             </div>
           </div>
 
@@ -329,6 +377,7 @@ export default function SubscribePage() {
             )}
             className="space-y-6 p-5 sm:p-8"
           >
+
             {/* ERROR */}
 
             {subscriberError && (
@@ -343,6 +392,7 @@ export default function SubscribePage() {
 
             <Card className="border-gray-200 shadow-none">
               <CardContent className="space-y-5 pt-5">
+
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-red-700" />
 
@@ -352,6 +402,7 @@ export default function SubscribePage() {
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
+
                   {/* USERNAME */}
 
                   <div className="space-y-1.5">
@@ -400,7 +451,9 @@ export default function SubscribePage() {
                       }
                     />
                   </div>
+
                 </div>
+
               </CardContent>
             </Card>
 
@@ -410,6 +463,7 @@ export default function SubscribePage() {
 
             <Card className="border-gray-200 shadow-none">
               <CardContent className="space-y-5 pt-5">
+
                 <h3 className="text-sm font-black text-gray-900">
                   Contact Information
                 </h3>
@@ -466,6 +520,7 @@ export default function SubscribePage() {
                 {/* PHONE + WHATSAPP */}
 
                 <div className="grid gap-5 sm:grid-cols-2">
+
                   <div className="space-y-1.5">
                     <Label htmlFor="phone_number">
                       Mobile Number
@@ -502,7 +557,9 @@ export default function SubscribePage() {
                       )}
                     />
                   </div>
+
                 </div>
+
               </CardContent>
             </Card>
 
@@ -512,7 +569,9 @@ export default function SubscribePage() {
 
             <Card className="border-red-200 bg-red-50/40 shadow-none">
               <CardContent className="pt-5">
+
                 <div className="flex items-start gap-3">
+
                   <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
                     <MessageCircle className="h-4 w-4" />
                   </div>
@@ -528,11 +587,13 @@ export default function SubscribePage() {
                       subscriber application.
                     </p>
                   </div>
+
                 </div>
 
                 {/* CHANNEL GRID */}
 
                 <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+
                   {CHANNELS.map((channel) => {
                     const confirmed =
                       confirmedChannels.has(
@@ -548,6 +609,7 @@ export default function SubscribePage() {
                             : "border-transparent bg-white"
                         }`}
                       >
+
                         {/* CHANNEL NAME */}
 
                         <p className="mb-3 min-h-[32px] text-[11px] font-black leading-4 text-gray-900">
@@ -606,9 +668,11 @@ export default function SubscribePage() {
                             </>
                           )}
                         </a>
+
                       </div>
                     );
                   })}
+
                 </div>
 
                 {/* ACTIVATION */}
@@ -630,6 +694,7 @@ export default function SubscribePage() {
                     one official channel.
                   </div>
                 )}
+
               </CardContent>
             </Card>
 
@@ -638,6 +703,7 @@ export default function SubscribePage() {
                 ============================================================ */}
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs leading-5 text-gray-600">
+
               <input
                 type="checkbox"
                 checked={subscriberDeclared}
@@ -658,6 +724,7 @@ export default function SubscribePage() {
                 War of Justice channels before
                 submitting my subscriber application.
               </span>
+
             </label>
 
             {/* ============================================================
@@ -696,6 +763,7 @@ export default function SubscribePage() {
                 ============================================================ */}
 
             <div className="space-y-2 text-center">
+
               <p className="text-[10px] text-gray-500">
                 Secure submission · Your information
                 is handled confidentially
@@ -703,6 +771,7 @@ export default function SubscribePage() {
 
               <p className="text-xs text-gray-500">
                 Already have an account?{" "}
+
                 <Link
                   href="/login"
                   className="font-bold text-red-700 hover:text-red-800"
@@ -710,7 +779,9 @@ export default function SubscribePage() {
                   Sign in
                 </Link>
               </p>
+
             </div>
+
           </form>
         </section>
       </div>
