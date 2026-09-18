@@ -101,9 +101,24 @@ export function SiteHeader() {
           TOP UTILITY BAR
       ====================================================== */}
       <div className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex min-h-[44px] max-w-7xl items-center justify-between gap-4 px-4 text-sm">
+        <div
+          className="
+            mx-auto
+            flex
+            min-h-[44px]
+            max-w-7xl
+            items-center
+            justify-between
+            gap-2
+            px-3
+            text-[11px]
+            sm:gap-4
+            sm:px-4
+            sm:text-sm
+          "
+        >
           {/* Date + e-Paper */}
-          <div className="flex items-center gap-3 text-neutral-700">
+          <div className="flex items-center gap-2 text-neutral-700 sm:gap-3">
             <span className="whitespace-nowrap">
               {new Date().toLocaleDateString(
                 "en-US",
@@ -121,18 +136,26 @@ export function SiteHeader() {
 
             <Link
               href="/latest"
-              className="font-semibold text-primary transition hover:underline"
+              className="whitespace-nowrap font-semibold text-primary transition hover:underline"
             >
               e-Paper
             </Link>
           </div>
 
           {/* Right-side actions */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             {/* e-Magazine */}
             <Link
               href="/gallery"
-              className="hidden items-center gap-1.5 text-neutral-700 transition hover:text-primary sm:flex"
+              className="
+                hidden
+                items-center
+                gap-1.5
+                text-neutral-700
+                transition
+                hover:text-primary
+                sm:flex
+              "
             >
               <BookOpen className="h-4 w-4" />
               <span>e-Magazine</span>
@@ -142,7 +165,15 @@ export function SiteHeader() {
             <Button
               asChild
               size="sm"
-              className="h-8 px-3 text-xs font-bold uppercase tracking-wide"
+              className="
+                h-8
+                px-3
+                text-[11px]
+                font-bold
+                uppercase
+                tracking-wide
+                sm:text-xs
+              "
             >
               <Link href="/subscribe">
                 Subscribe
@@ -156,7 +187,16 @@ export function SiteHeader() {
                 {canAccessAuthorStudio && !isAdmin && (
                   <Link
                     href="/author/dashboard"
-                    className="hidden items-center gap-1.5 font-semibold text-neutral-700 transition hover:text-primary sm:flex"
+                    className="
+                      hidden
+                      items-center
+                      gap-1.5
+                      font-semibold
+                      text-neutral-700
+                      transition
+                      hover:text-primary
+                      sm:flex
+                    "
                   >
                     <PencilLine className="h-4 w-4" />
                     <span>Author Studio</span>
@@ -167,7 +207,16 @@ export function SiteHeader() {
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
-                    className="hidden items-center gap-1.5 font-semibold text-neutral-700 transition hover:text-primary sm:flex"
+                    className="
+                      hidden
+                      items-center
+                      gap-1.5
+                      font-semibold
+                      text-neutral-700
+                      transition
+                      hover:text-primary
+                      sm:flex
+                    "
                   >
                     <ShieldCheck className="h-4 w-4" />
                     <span>Admin Panel</span>
@@ -178,7 +227,16 @@ export function SiteHeader() {
                 {isSubscriber && (
                   <Link
                     href="/subscriber/dashboard"
-                    className="hidden items-center gap-1.5 font-semibold text-neutral-700 transition hover:text-primary sm:flex"
+                    className="
+                      hidden
+                      items-center
+                      gap-1.5
+                      font-semibold
+                      text-neutral-700
+                      transition
+                      hover:text-primary
+                      sm:flex
+                    "
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Subscriber Dashboard</span>
@@ -189,7 +247,16 @@ export function SiteHeader() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 font-semibold text-neutral-700 transition hover:text-primary"
+                  className="
+                    flex
+                    items-center
+                    gap-1.5
+                    whitespace-nowrap
+                    font-semibold
+                    text-neutral-700
+                    transition
+                    hover:text-primary
+                  "
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
@@ -199,7 +266,16 @@ export function SiteHeader() {
               /* Login */
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 font-semibold text-neutral-700 transition hover:text-primary"
+                className="
+                  flex
+                  items-center
+                  gap-1.5
+                  whitespace-nowrap
+                  font-semibold
+                  text-neutral-700
+                  transition
+                  hover:text-primary
+                "
               >
                 <UserIcon className="h-4 w-4" />
                 <span>Login</span>
@@ -213,7 +289,26 @@ export function SiteHeader() {
           MAIN MASTHEAD
       ====================================================== */}
       <div className="bg-gradient-to-b from-primary to-red-800 text-white">
-        <div className="mx-auto flex min-h-[118px] max-w-7xl items-center gap-3 px-4 py-2 sm:min-h-[126px] sm:gap-4 lg:px-6">
+        <div
+          className="
+            mx-auto
+            flex
+            min-h-[78px]
+            max-w-7xl
+            items-center
+            gap-2
+            px-3
+            py-2
+
+            sm:min-h-[100px]
+            sm:gap-3
+            sm:px-4
+
+            lg:min-h-[126px]
+            lg:gap-4
+            lg:px-6
+          "
+        >
           {/* =================================================
               MOBILE MENU
           ================================================== */}
@@ -222,7 +317,15 @@ export function SiteHeader() {
               type="button"
               variant="ghost"
               size="icon"
-              className="h-10 w-10 text-white hover:bg-white/10 hover:text-white"
+              className="
+                h-9
+                w-9
+                text-white
+                hover:bg-white/10
+                hover:text-white
+                sm:h-10
+                sm:w-10
+              "
               onClick={() =>
                 setMobileOpen((value) => !value)
               }
@@ -230,15 +333,15 @@ export function SiteHeader() {
               aria-expanded={mobileOpen}
             >
               {mobileOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
             </Button>
           </div>
 
           {/* =================================================
-              LEFT — EXISTING EMBLEM
+              LEFT — EMBLEM
           ================================================== */}
           <Link
             href="/"
@@ -252,10 +355,15 @@ export function SiteHeader() {
               height={125}
               priority
               className="
-                h-[74px] w-[104px]
+                h-[54px]
+                w-[72px]
                 object-contain
-                sm:h-[86px] sm:w-[122px]
-                lg:h-[96px] lg:w-[138px]
+
+                sm:h-[72px]
+                sm:w-[96px]
+
+                lg:h-[96px]
+                lg:w-[138px]
               "
             />
           </Link>
@@ -266,29 +374,35 @@ export function SiteHeader() {
           <div className="min-w-0 flex-1 text-center">
             <h1
               className="
-                truncate
-                text-[32px]
+                whitespace-nowrap
+                text-[19px]
                 font-black
                 leading-none
                 tracking-tight
-                sm:text-[40px]
-                lg:text-[52px]
+
+                sm:text-[30px]
+
+                lg:text-[50px]
               "
             >
               WAR{" "}
               <span
                 className="
-                  mx-1
+                  mx-0.5
                   inline-block
                   rounded-md
                   bg-yellow-400
-                  px-2
+                  px-1.5
                   py-0.5
                   align-middle
-                  text-[20px]
+                  text-[13px]
                   text-black
-                  sm:px-2.5
-                  sm:text-[25px]
+
+                  sm:px-2
+                  sm:text-[20px]
+
+                  lg:mx-1
+                  lg:px-2.5
                   lg:text-[31px]
                 "
               >
@@ -297,20 +411,28 @@ export function SiteHeader() {
               JUSTICE
             </h1>
 
+            {/* Slogan hidden on small mobile */}
             <p
               className="
-                mt-1.5
-                inline-block
+                mx-auto
+                mt-1
+                hidden
+                max-w-full
                 rounded-md
                 bg-yellow-400
-                px-3
+                px-2
                 py-1
-                text-[9px]
+                text-[8px]
                 font-extrabold
                 leading-tight
                 tracking-wide
                 text-black
-                sm:text-[11px]
+
+                sm:inline-block
+                sm:text-[10px]
+
+                lg:mt-1.5
+                lg:px-3
                 lg:text-sm
               "
             >
@@ -319,36 +441,63 @@ export function SiteHeader() {
           </div>
 
           {/* =================================================
-              RIGHT — LARGE BADGES + SEARCH
+              RIGHT — BADGES + SEARCH
           ================================================== */}
-          <div className="flex shrink-0 items-center gap-3 sm:gap-4 lg:gap-5">
-            {/* Partner badges */}
-            <div className="flex items-center gap-3 sm:gap-4">
-              {/* Press Today News */}
+          <div
+            className="
+              flex
+              shrink-0
+              items-center
+              gap-1.5
+
+              sm:gap-2
+
+              lg:gap-4
+            "
+          >
+            {/* Partner badges
+                Hidden on very small screens
+            */}
+            <div
+              className="
+                hidden
+                items-center
+                gap-2
+
+                sm:flex
+
+                lg:gap-3
+              "
+            >
               <Image
                 src="/today-news-badge.png"
                 alt="Today News"
                 width={120}
                 height={80}
                 className="
-                  h-[56px] w-auto
-                  sm:h-[68px]
-                  lg:h-[80px]
+                  h-[58px]
+                  w-auto
                   object-contain
+
+                  sm:h-[68px]
+
+                  lg:h-[80px]
                 "
               />
 
-              {/* News 24/7 */}
               <Image
                 src="/news-24-7-badge.png"
                 alt="News 24/7"
                 width={90}
                 height={120}
                 className="
-                  h-[64px] w-auto
-                  sm:h-[76px]
-                  lg:h-[88px]
+                  h-[64px]
+                  w-auto
                   object-contain
+
+                  sm:h-[76px]
+
+                  lg:h-[88px]
                 "
               />
             </div>
@@ -359,12 +508,17 @@ export function SiteHeader() {
               variant="ghost"
               size="icon"
               className="
-                h-10 w-10
+                h-9
+                w-9
                 text-white
                 hover:bg-white/10
                 hover:text-white
-                sm:h-11 sm:w-11
-                lg:h-12 lg:w-12
+
+                sm:h-10
+                sm:w-10
+
+                lg:h-12
+                lg:w-12
               "
               onClick={() =>
                 setSearchOpen((value) => !value)
@@ -373,9 +527,9 @@ export function SiteHeader() {
               aria-expanded={searchOpen}
             >
               {searchOpen ? (
-                <X className="h-6 w-6 lg:h-7 lg:w-7" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" />
               ) : (
-                <Search className="h-6 w-6 lg:h-7 lg:w-7" />
+                <Search className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" />
               )}
             </Button>
           </div>
@@ -385,7 +539,7 @@ export function SiteHeader() {
             SEARCH PANEL
         ================================================== */}
         {searchOpen && (
-          <div className="border-t border-white/20 px-4 py-3">
+          <div className="border-t border-white/20 px-3 py-2.5 sm:px-4 sm:py-3">
             <form
               onSubmit={handleSearchSubmit}
               className="mx-auto max-w-2xl"
@@ -395,7 +549,14 @@ export function SiteHeader() {
                 type="search"
                 autoFocus
                 placeholder="Search articles, categories, tags..."
-                className="h-11 bg-white text-black placeholder:text-neutral-500"
+                className="
+                  h-10
+                  bg-white
+                  text-black
+                  placeholder:text-neutral-500
+
+                  sm:h-11
+                "
               />
             </form>
           </div>
@@ -405,7 +566,7 @@ export function SiteHeader() {
       {/* =====================================================
           DESKTOP CATEGORY NAVIGATION — HIDDEN
           
-          Kept here for future use.
+          Kept in source for future use.
       ====================================================== */}
 
       {/*
