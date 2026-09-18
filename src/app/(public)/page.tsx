@@ -79,9 +79,8 @@ export default async function HomePage() {
   /*
    * Show the newest published posts in Latest News.
    *
-   * Using slice(0, 6) is intentional:
-   * even when there is only 1-5 published posts,
-   * they will still appear in Latest News.
+   * Using slice(0, 6) means even when there are only
+   * 1-5 published posts, they still appear in Latest News.
    */
   const latest = feed.slice(0, 6);
 
@@ -131,20 +130,64 @@ export default async function HomePage() {
                   )}
 
                   {/* Hero overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                  <div
+                    className="
+                      absolute
+                      inset-x-0
+                      bottom-0
+                      bg-gradient-to-t
+                      from-black/90
+                      via-black/55
+                      to-transparent
+                      px-4
+                      pb-4
+                      pt-12
+                      sm:px-5
+                      sm:pb-5
+                      sm:pt-14
+                      lg:px-6
+                      lg:pb-6
+                      lg:pt-16
+                    "
+                  >
                     {/* Category */}
-                    <span className="rounded bg-primary px-2 py-0.5 text-xs font-bold uppercase text-primary-foreground">
-                      {hero.category?.name}
-                    </span>
+                    {hero.category?.name && (
+                      <span className="inline-block rounded bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground sm:text-xs">
+                        {hero.category.name}
+                      </span>
+                    )}
 
                     {/* Title */}
-                    <h1 className="mt-2 text-2xl font-black leading-tight text-white md:text-3xl">
+                    <h1
+                      className="
+                        mt-2
+                        line-clamp-2
+                        max-w-full
+                        text-base
+                        font-black
+                        leading-snug
+                        text-white
+                        sm:text-lg
+                        md:text-2xl
+                        lg:text-3xl
+                      "
+                    >
                       {hero.title}
                     </h1>
 
                     {/* Summary */}
                     {hero.short_description && (
-                      <p className="mt-2 line-clamp-2 text-sm text-white/80">
+                      <p
+                        className="
+                          mt-1
+                          line-clamp-1
+                          max-w-full
+                          text-xs
+                          leading-relaxed
+                          text-white/85
+                          sm:text-sm
+                        "
+                      >
                         {hero.short_description}
                       </p>
                     )}
@@ -223,7 +266,17 @@ export default async function HomePage() {
                 <Link
                   key={category.id}
                   href={`/category/${category.slug}`}
-                  className="rounded-lg border p-4 text-center text-sm font-semibold transition hover:border-primary hover:text-primary"
+                  className="
+                    rounded-lg
+                    border
+                    p-4
+                    text-center
+                    text-sm
+                    font-semibold
+                    transition
+                    hover:border-primary
+                    hover:text-primary
+                  "
                 >
                   {category.name}
                 </Link>
@@ -233,7 +286,7 @@ export default async function HomePage() {
         )}
 
         {/* ========================================= */}
-        {/* TRENDING NOW                           */}
+        {/* TRENDING NOW                            */}
         {/* ========================================= */}
         {trending.length > 0 && (
           <section className="mt-12 rounded-xl bg-muted/40 p-6">
