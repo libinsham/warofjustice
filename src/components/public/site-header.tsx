@@ -146,7 +146,7 @@ export function SiteHeader() {
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             {/* e-Magazine */}
             <Link
-              href="/gallery"
+              href="/subscriber/emagazine"
               className="
                 hidden
                 items-center
