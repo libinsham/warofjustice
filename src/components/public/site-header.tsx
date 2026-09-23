@@ -75,7 +75,7 @@ export function SiteHeader() {
             );
           })
           .slice(0, 1)
-          .map((post) => ({
+          .map((post: { id: number | string; title: string; slug?: string | null }) => ({
             id: post.id,
             title: post.title,
             slug: typeof post.slug === "string" ? post.slug : null,
