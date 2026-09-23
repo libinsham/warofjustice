@@ -44,14 +44,18 @@ export function SiteHeader() {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     const loadFlashNews = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/posts/?page=1`, {
           cache: "no-store",
+          signal: controller.signal,
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          return;
+        }
 
         const data = await response.json();
         const posts = Array.isArray(data)
@@ -61,26 +65,39 @@ export function SiteHeader() {
             : [];
 
         const latest: FlashPost[] = posts
-          .filter((post: any) => post?.title)
+          .filter((post: unknown): post is { id: number | string; title: string; slug?: string | null } => {
+            if (!post || typeof post !== "object") return false;
+            const value = post as { id?: unknown; title?: unknown; slug?: unknown };
+            return (
+              (typeof value.id === "string" || typeof value.id === "number") &&
+              typeof value.title === "string" &&
+              value.title.trim().length > 0
+            );
+          })
           .slice(0, 1)
-          .map((post: any) => ({
+          .map((post) => ({
             id: post.id,
             title: post.title,
-            slug: post.slug,
+            slug: typeof post.slug === "string" ? post.slug : null,
           }));
 
         if (!cancelled) {
           setFlashNews(latest);
         }
-      } catch (error) {
-        console.error("Failed to load flash news:", error);
+      } catch {
+        // The breaking-news ticker is optional.
+        // Never log or rethrow a network/CORS failure.
+        if (!cancelled) {
+          setFlashNews([]);
+        }
       }
     };
 
-    loadFlashNews();
+    void loadFlashNews();
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 
@@ -98,7 +115,6 @@ export function SiteHeader() {
     event.preventDefault();
 
     const query = searchQuery.trim();
-
     if (!query) {
       return;
     }
@@ -115,8 +131,8 @@ export function SiteHeader() {
       ========================================================== */}
       <div className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-4 py-2 text-xs sm:px-6 sm:text-sm">
-          <div className="flex items-center gap-3 text-neutral-700">
-            <span>
+          <div className="flex min-w-0 items-center gap-3 text-neutral-700">
+            <span className="whitespace-nowrap">
               {new Date().toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -206,20 +222,16 @@ export function SiteHeader() {
 
       {/* =========================================================
           MAIN RED MASTHEAD
-          Exact target layout:
-          - centered title
-          - logo moved inward
-          - Press Today News + News 24/7 + search on right
-          - no hamburger / no horizontal category nav
+          Centered title with balanced left/right content.
       ========================================================== */}
       <div className="overflow-x-hidden bg-red-700 text-white">
         <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8">
-          <div className="relative flex min-h-[126px] items-center py-5 sm:min-h-[145px] lg:min-h-[160px] lg:py-6">
-            {/* LEFT LOGO */}
+          <div className="relative flex min-h-[92px] items-center py-3 sm:min-h-[125px] sm:py-5 lg:min-h-[160px] lg:py-6">
+            {/* LOGO */}
             <Link
               href="/"
               aria-label={SITE_NAME}
-              className="relative z-10 flex shrink-0 items-center"
+              className="relative z-20 flex shrink-0 items-center"
             >
               <Image
                 src="/logo.png"
@@ -227,51 +239,53 @@ export function SiteHeader() {
                 width={150}
                 height={150}
                 priority
-                className="h-20 w-20 object-contain sm:h-24 sm:w-24 lg:h-28 lg:w-28"
+                className="h-16 w-16 object-contain sm:h-24 sm:w-24 lg:h-28 lg:w-28"
               />
             </Link>
 
             {/* CENTER TITLE */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-28 sm:px-36 lg:px-44">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-20 sm:px-28 lg:px-44">
               <Link
                 href="/"
                 aria-label={SITE_NAME}
                 className="pointer-events-auto block max-w-full"
               >
-                <h1 className="whitespace-nowrap text-center text-[clamp(3rem,5vw,5.25rem)] font-black uppercase leading-none tracking-[-0.04em] text-white">
+                <h1 className="whitespace-nowrap text-center text-[2rem] font-black uppercase leading-none tracking-[-0.04em] text-white sm:text-[3.6rem] lg:text-[5.25rem]">
                   WAR OF JUSTICE
                 </h1>
               </Link>
             </div>
 
             {/* RIGHT BADGES + SEARCH */}
-            <div className="relative z-10 ml-auto flex shrink-0 items-center gap-2 sm:gap-4 lg:gap-5">
-              <Image
-                src="/today-news-badge.png"
-                alt="Press Today News"
-                width={150}
-                height={90}
-                className="h-14 w-auto object-contain sm:h-16 lg:h-[76px]"
-              />
+            <div className="relative z-20 ml-auto flex shrink-0 items-center gap-2 sm:gap-4 lg:gap-5">
+              <div className="hidden items-center gap-2 sm:flex lg:gap-4">
+                <Image
+                  src="/today-news-badge.png"
+                  alt="Press Today News"
+                  width={150}
+                  height={90}
+                  className="h-14 w-auto object-contain sm:h-16 lg:h-[76px]"
+                />
 
-              <Image
-                src="/news-24-7-badge.png"
-                alt="News 24/7"
-                width={95}
-                height={120}
-                className="h-14 w-auto object-contain sm:h-16 lg:h-20"
-              />
+                <Image
+                  src="/news-24-7-badge.png"
+                  alt="News 24/7"
+                  width={95}
+                  height={120}
+                  className="h-14 w-auto object-contain sm:h-16 lg:h-20"
+                />
+              </div>
 
               <button
                 type="button"
                 onClick={() => setSearchOpen((value) => !value)}
                 aria-label={searchOpen ? "Close search" : "Open search"}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/10"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/10 sm:h-10 sm:w-10"
               >
                 {searchOpen ? (
-                  <X className="h-7 w-7" />
+                  <X className="h-6 w-6 sm:h-7 sm:w-7" />
                 ) : (
-                  <Search className="h-7 w-7" />
+                  <Search className="h-6 w-6 sm:h-7 sm:w-7" />
                 )}
               </button>
             </div>
@@ -279,7 +293,7 @@ export function SiteHeader() {
 
           {/* SEARCH PANEL */}
           {searchOpen && (
-            <div className="border-t border-white/20 py-4">
+            <div className="border-t border-white/20 py-3 sm:py-4">
               <form
                 onSubmit={handleSearchSubmit}
                 className="mx-auto flex w-full max-w-3xl gap-2"
@@ -290,12 +304,12 @@ export function SiteHeader() {
                   onChange={(event) => setSearchQuery(event.target.value)}
                   autoFocus
                   placeholder="Search articles, categories, tags..."
-                  className="h-11 min-w-0 flex-1 rounded-md border border-white/20 bg-white px-4 text-sm text-black outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-yellow-400"
+                  className="h-10 min-w-0 flex-1 rounded-md border border-white/20 bg-white px-3 text-sm text-black outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-yellow-400 sm:h-11 sm:px-4"
                 />
 
                 <button
                   type="submit"
-                  className="h-11 rounded-md bg-white px-5 text-sm font-bold text-red-700 transition hover:bg-white/90"
+                  className="h-10 rounded-md bg-white px-4 text-sm font-bold text-red-700 transition hover:bg-white/90 sm:h-11 sm:px-5"
                 >
                   Search
                 </button>
@@ -307,11 +321,10 @@ export function SiteHeader() {
 
       {/* =========================================================
           STATIC YELLOW SLOGAN STRIP
-          No marquee here.
       ========================================================== */}
       <div className="border-b border-yellow-500 bg-yellow-400">
-        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-center px-4 py-3 sm:px-6">
-          <p className="text-center text-sm font-black uppercase tracking-tight text-black sm:text-base lg:text-xl">
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-center px-4 py-2.5 sm:px-6 sm:py-3">
+          <p className="text-center text-[11px] font-black uppercase leading-snug tracking-tight text-black sm:text-base lg:text-xl">
             {SITE_SLOGAN}
           </p>
         </div>
