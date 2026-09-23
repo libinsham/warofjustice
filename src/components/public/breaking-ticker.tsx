@@ -3,23 +3,56 @@
 import Link from "next/link";
 import type { PostSummary } from "@/types";
 
-/** Scrolling breaking-news bar. Expects the caller to pass posts already
- * filtered by `is_breaking` (see postsApi.listPublished({ breaking: true })). */
-export function BreakingTicker({ posts }: { posts: PostSummary[] }) {
-  if (posts.length === 0) return null;
+export function BreakingTicker({
+  posts,
+}: {
+  posts: PostSummary[];
+}) {
+  const latestPost = posts[0];
+
+  if (!latestPost) {
+    return null;
+  }
 
   return (
-    <div className="flex items-center gap-3 overflow-hidden bg-primary px-4 py-2 text-primary-foreground">
-      <span className="shrink-0 rounded bg-black/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wide">
-        Breaking
-      </span>
-      <div className="flex gap-8 overflow-x-auto whitespace-nowrap text-sm font-medium [scrollbar-width:none]">
-        {posts.map((post) => (
-          <Link key={post.id} href={`/article/${post.slug}`} className="hover:underline">
-            {post.title}
-          </Link>
-        ))}
+    <div className="mb-5 flex h-10 w-full overflow-hidden bg-red-700 text-white">
+      <div className="flex shrink-0 items-center bg-red-900 px-4 text-xs font-black uppercase tracking-wide">
+        Breaking News
       </div>
+
+      <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+        <div className="breaking-news-track">
+          <Link
+            href={`/article/${latestPost.slug}`}
+            className="text-sm font-semibold hover:underline"
+          >
+            {latestPost.title}
+          </Link>
+        </div>
+      </div>
+
+      <style>{`
+        .breaking-news-track {
+          display: inline-block;
+          white-space: nowrap;
+          padding-left: 100%;
+          animation: breaking-news-scroll 20s linear infinite;
+        }
+
+        .breaking-news-track:hover {
+          animation-play-state: paused;
+        }
+
+        @keyframes breaking-news-scroll {
+          from {
+            transform: translateX(0);
+          }
+
+          to {
+            transform: translateX(-100%);
+          }
+        }
+      `}</style>
     </div>
   );
 }

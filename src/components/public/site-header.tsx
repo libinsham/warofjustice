@@ -3,51 +3,44 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
-  Menu,
   Search,
   User as UserIcon,
-  X,
   BookOpen,
-  Gem,
   LogOut,
   ShieldCheck,
   PencilLine,
   LayoutDashboard,
   Radio,
+  X,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
-import {
-  NAV_CATEGORIES,
-  SITE_NAME,
-  SITE_SLOGAN,
-} from "@/lib/site-config";
-
+import { SITE_NAME, SITE_SLOGAN } from "@/lib/site-config";
 import { useAuth } from "@/providers/auth-provider";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://api.warofjustice.news/api/v1";
 
+type FlashPost = {
+  id: number | string;
+  title: string;
+  slug?: string | null;
+};
+
 export function SiteHeader() {
   const router = useRouter();
 
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [flashNews, setFlashNews] = useState<{ id: number | string; title: string; slug?: string | null }[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [flashNews, setFlashNews] = useState<FlashPost[]>([]);
 
-  const {
-    user,
-    status,
-    isAdmin,
-    logout,
-  } = useAuth();
+  const { user, status, isAdmin, logout } = useAuth();
 
   const roleName = user?.role?.name;
+  const isSubscriber = String(roleName) === "subscriber";
+  const canAccessAuthorStudio = roleName === "author";
 
   useEffect(() => {
     let cancelled = false;
@@ -67,17 +60,17 @@ export function SiteHeader() {
             ? data.results
             : [];
 
+        const latest: FlashPost[] = posts
+          .filter((post: any) => post?.title)
+          .slice(0, 1)
+          .map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+          }));
+
         if (!cancelled) {
-          setFlashNews(
-            posts
-              .filter((post: any) => post?.title)
-              .slice(0, 1)
-              .map((post: any) => ({
-                id: post.id,
-                title: post.title,
-                slug: post.slug,
-              })),
-          );
+          setFlashNews(latest);
         }
       } catch (error) {
         console.error("Failed to load flash news:", error);
@@ -91,14 +84,6 @@ export function SiteHeader() {
     };
   }, []);
 
-const isSubscriber =
-  String(roleName) === "subscriber";
-
-  // Member & Contributor use the same publishing access.
-  // Approved applications currently use the author role.
-  const canAccessAuthorStudio =
-    roleName === "author";
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -109,14 +94,27 @@ const isSubscriber =
     }
   };
 
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const query = searchQuery.trim();
+
+    if (!query) {
+      return;
+    }
+
+    router.push(`/search?q=${encodeURIComponent(query)}`);
+    setSearchQuery("");
+    setSearchOpen(false);
+  };
+
   return (
-    <header className="sticky top-0 z-40">
-      {/* =====================================================
+    <header className="sticky top-0 z-40 bg-white">
+      {/* =========================================================
           TOP UTILITY BAR
-      ====================================================== */}
-      <div className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 text-sm">
-          {/* Date + e-Paper */}
+      ========================================================== */}
+      <div className="border-b border-neutral-200 bg-white">
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-4 py-2 text-xs sm:px-6 sm:text-sm">
           <div className="flex items-center gap-3 text-neutral-700">
             <span>
               {new Date().toLocaleDateString("en-US", {
@@ -130,77 +128,64 @@ const isSubscriber =
 
             <Link
               href="/latest"
-              className="font-semibold text-primary hover:underline"
+              className="font-semibold text-red-700 hover:underline"
             >
               e-Paper
             </Link>
           </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-4">
-            {/* e-Magazine */}
+          <div className="flex items-center gap-3 sm:gap-5">
             <Link
-              href="/gallery"
-              className="hidden items-center gap-1 text-neutral-700 hover:text-primary sm:flex"
+              href="/subscriber/emagazine/"
+              className="hidden items-center gap-1 text-neutral-700 hover:text-red-700 sm:flex"
             >
               <BookOpen className="h-4 w-4" />
               e-Magazine
             </Link>
 
-            {/* Subscribe */}
-            <Button
-              asChild
-              size="sm"
-              className="uppercase tracking-wide"
+            <Link
+              href="/subscribe"
+              className="rounded-md bg-red-700 px-3 py-1.5 font-semibold uppercase tracking-wide text-white transition hover:bg-red-800"
             >
-              <Link href="/subscribe">
-                Subscribe
-              </Link>
-            </Button>
+              Subscribe
+            </Link>
 
-            {/* =================================================
-                AUTHENTICATED USER / LOGIN
-            ================================================== */}
             {status === "authenticated" && user ? (
               <>
-                {/* Member & Contributor / Author Studio */}
                 {canAccessAuthorStudio && !isAdmin && (
                   <Link
                     href="/author/dashboard"
-                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-primary sm:flex"
+                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-red-700 md:flex"
                   >
                     <PencilLine className="h-4 w-4" />
                     Author Studio
                   </Link>
                 )}
 
-                {/* Admin Panel */}
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
-                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-primary sm:flex"
+                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-red-700 md:flex"
                   >
                     <ShieldCheck className="h-4 w-4" />
                     Admin Panel
                   </Link>
                 )}
 
-                {/* Subscriber Dashboard */}
                 {isSubscriber && (
                   <Link
                     href="/subscriber/dashboard"
-                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-primary sm:flex"
+                    className="hidden items-center gap-1 font-semibold text-neutral-700 hover:text-red-700 md:flex"
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     Subscriber Dashboard
                   </Link>
                 )}
 
-                {/* Logout */}
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+                  className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-red-700"
                 >
                   <LogOut className="h-4 w-4" />
                   Logout
@@ -209,7 +194,7 @@ const isSubscriber =
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-primary"
+                className="flex items-center gap-1 font-semibold text-neutral-700 hover:text-red-700"
               >
                 <UserIcon className="h-4 w-4" />
                 Login
@@ -219,236 +204,139 @@ const isSubscriber =
         </div>
       </div>
 
-      {/* =====================================================
-          MAIN MASTHEAD
-      ====================================================== */}
-      <div className="bg-gradient-to-b from-primary to-red-800 text-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
-          {/* Menu + Search */}
-          <div className="flex shrink-0 items-center gap-1">
-            {/* Mobile menu */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10 hover:text-white lg:hidden"
-              onClick={() =>
-                setMobileOpen((value) => !value)
-              }
-              aria-label="Toggle navigation"
+      {/* =========================================================
+          MAIN RED MASTHEAD
+          Exact target layout:
+          - centered title
+          - logo moved inward
+          - Press Today News + News 24/7 + search on right
+          - no hamburger / no horizontal category nav
+      ========================================================== */}
+      <div className="overflow-x-hidden bg-red-700 text-white">
+        <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="relative flex min-h-[126px] items-center py-5 sm:min-h-[145px] lg:min-h-[160px] lg:py-6">
+            {/* LEFT LOGO */}
+            <Link
+              href="/"
+              aria-label={SITE_NAME}
+              className="relative z-10 flex shrink-0 items-center"
             >
-              {mobileOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
-
-            {/* Desktop search */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden text-white hover:bg-white/10 hover:text-white lg:inline-flex"
-              onClick={() =>
-                setSearchOpen((value) => !value)
-              }
-              aria-label="Toggle search"
-            >
-              {searchOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Search className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-
-          {/* =================================================
-              LOGO
-          ================================================== */}
-          <Link
-            href="/"
-            className="flex shrink-0 items-center"
-            aria-label={SITE_NAME}
-          >
-            <Image
-              src="/logo.png"
-              alt={SITE_NAME}
-              width={150}
-              height={100}
-              priority
-              className="h-20 w-32 object-contain sm:h-24 sm:w-40"
-            />
-          </Link>
-
-          {/* =================================================
-              SITE TITLE
-          ================================================== */}
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-black leading-none tracking-tight sm:text-4xl lg:text-5xl">
-              WAR{" "}
-              <span className="mx-1 inline-block rounded bg-yellow-400 px-2 py-0.5 align-middle text-xl text-black sm:text-2xl lg:text-3xl">
-                OF
-              </span>{" "}
-              JUSTICE
-            </h1>
-
-            <p className="mt-1 hidden rounded bg-yellow-400 px-3 py-1 text-center text-xs font-bold tracking-wide text-black sm:inline-block sm:text-sm">
-              {SITE_SLOGAN}
-            </p>
-          </div>
-
-          {/* =================================================
-              PARTNER BADGES
-          ================================================== */}
-          <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            <Image
-              src="/today-news-badge.png"
-              alt="Today News"
-              width={90}
-              height={60}
-              className="h-14 w-auto object-contain"
-            />
-
-            <Image
-              src="/news-24-7-badge.png"
-              alt="News 24/7"
-              width={70}
-              height={90}
-              className="h-16 w-auto object-contain"
-            />
-          </div>
-        </div>
-
-        {/* =================================================
-            SEARCH PANEL
-        ================================================== */}
-        {searchOpen && (
-          <div className="border-t border-white/20 px-4 py-3">
-            <form
-              className="mx-auto max-w-2xl"
-              onSubmit={(event) => {
-                event.preventDefault();
-
-                const form = new FormData(
-                  event.currentTarget,
-                );
-
-                const query = form
-                  .get("q")
-                  ?.toString()
-                  .trim();
-
-                if (!query) {
-                  return;
-                }
-
-                router.push(
-                  `/search?q=${encodeURIComponent(query)}`,
-                );
-
-                setSearchOpen(false);
-              }}
-            >
-              <Input
-                name="q"
-                autoFocus
-                placeholder="Search articles, categories, tags…"
-                className="bg-white text-black"
+              <Image
+                src="/logo.png"
+                alt={SITE_NAME}
+                width={150}
+                height={150}
+                priority
+                className="h-20 w-20 object-contain sm:h-24 sm:w-24 lg:h-28 lg:w-28"
               />
-            </form>
+            </Link>
+
+            {/* CENTER TITLE */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-28 sm:px-36 lg:px-44">
+              <Link
+                href="/"
+                aria-label={SITE_NAME}
+                className="pointer-events-auto block max-w-full"
+              >
+                <h1 className="whitespace-nowrap text-center text-[clamp(3rem,5vw,5.25rem)] font-black uppercase leading-none tracking-[-0.04em] text-white">
+                  WAR OF JUSTICE
+                </h1>
+              </Link>
+            </div>
+
+            {/* RIGHT BADGES + SEARCH */}
+            <div className="relative z-10 ml-auto flex shrink-0 items-center gap-2 sm:gap-4 lg:gap-5">
+              <Image
+                src="/today-news-badge.png"
+                alt="Press Today News"
+                width={150}
+                height={90}
+                className="h-14 w-auto object-contain sm:h-16 lg:h-[76px]"
+              />
+
+              <Image
+                src="/news-24-7-badge.png"
+                alt="News 24/7"
+                width={95}
+                height={120}
+                className="h-14 w-auto object-contain sm:h-16 lg:h-20"
+              />
+
+              <button
+                type="button"
+                onClick={() => setSearchOpen((value) => !value)}
+                aria-label={searchOpen ? "Close search" : "Open search"}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/10"
+              >
+                {searchOpen ? (
+                  <X className="h-7 w-7" />
+                ) : (
+                  <Search className="h-7 w-7" />
+                )}
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* SEARCH PANEL */}
+          {searchOpen && (
+            <div className="border-t border-white/20 py-4">
+              <form
+                onSubmit={handleSearchSubmit}
+                className="mx-auto flex w-full max-w-3xl gap-2"
+              >
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  autoFocus
+                  placeholder="Search articles, categories, tags..."
+                  className="h-11 min-w-0 flex-1 rounded-md border border-white/20 bg-white px-4 text-sm text-black outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-yellow-400"
+                />
+
+                <button
+                  type="submit"
+                  className="h-11 rounded-md bg-white px-5 text-sm font-bold text-red-700 transition hover:bg-white/90"
+                >
+                  Search
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* =====================================================
-          MOBILE NAVIGATION
-      ====================================================== */}
-      {mobileOpen && (
-        <nav className="flex flex-col gap-1 border-b bg-white px-4 py-3 lg:hidden">
-          {NAV_CATEGORIES.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-2 py-2 text-sm font-bold uppercase hover:bg-accent"
-              onClick={() =>
-                setMobileOpen(false)
-              }
-            >
-              {link.label}
-            </Link>
-          ))}
+      {/* =========================================================
+          STATIC YELLOW SLOGAN STRIP
+          No marquee here.
+      ========================================================== */}
+      <div className="border-b border-yellow-500 bg-yellow-400">
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-center px-4 py-3 sm:px-6">
+          <p className="text-center text-sm font-black uppercase tracking-tight text-black sm:text-base lg:text-xl">
+            {SITE_SLOGAN}
+          </p>
+        </div>
+      </div>
 
-          <Link
-            href="/register"
-            className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-bold uppercase hover:bg-accent"
-            onClick={() =>
-              setMobileOpen(false)
-            }
-          >
-            Premium
-            <Gem className="h-4 w-4 text-yellow-500" />
-          </Link>
-
-          {/* Mobile authenticated dashboard links */}
-          {status === "authenticated" && user && (
-            <>
-              {/* Author Studio */}
-              {canAccessAuthorStudio && !isAdmin && (
-                <Link
-                  href="/author/dashboard"
-                  className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-bold uppercase text-neutral-800 hover:bg-accent hover:text-primary"
-                  onClick={() =>
-                    setMobileOpen(false)
-                  }
-                >
-                  <PencilLine className="h-4 w-4" />
-                  Author Studio
-                </Link>
-              )}
-
-              {/* Admin Panel */}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-bold uppercase text-neutral-800 hover:bg-accent hover:text-primary"
-                  onClick={() =>
-                    setMobileOpen(false)
-                  }
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin Panel
-                </Link>
-              )}
-
-              {/* Subscriber Dashboard */}
-              {isSubscriber && (
-                <Link
-                  href="/subscriber/dashboard"
-                  className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-bold uppercase text-neutral-800 hover:bg-accent hover:text-primary"
-                  onClick={() =>
-                    setMobileOpen(false)
-                  }
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Subscriber Dashboard
-                </Link>
-              )}
-            </>
-          )}
-        </nav>
-      )}
-      {/* Latest published post marquee */}
+      {/* =========================================================
+          LATEST PUBLISHED POST / BREAKING NEWS TICKER
+      ========================================================== */}
       <div className="w-full overflow-hidden border-b border-red-100 bg-white">
-        <div className="mx-auto flex max-w-7xl items-stretch">
-          <div className="relative z-10 flex shrink-0 items-center bg-red-700 px-3 py-2 text-white sm:px-4">
+        <div className="mx-auto flex w-full max-w-[1280px] items-stretch">
+          <div className="relative z-10 flex shrink-0 items-center bg-red-700 px-3 py-3 text-white sm:px-5">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
               </span>
+
               <Radio className="h-4 w-4 shrink-0" />
-              <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-wider sm:text-xs">Breaking News</span>
+
+              <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-wider sm:text-xs">
+                Breaking News
+              </span>
             </div>
           </div>
+
           <div className="min-w-0 flex-1 overflow-hidden bg-red-50">
             {flashNews.length > 0 ? (
               <div className="flex h-full items-center overflow-hidden">
@@ -459,25 +347,41 @@ const isSubscriber =
                       href={post.slug ? `/article/${post.slug}` : "/latest"}
                       className="flex items-center transition hover:text-red-700"
                     >
-                      <span className="px-5 text-xs font-semibold text-neutral-800 sm:text-sm">{post.title}</span>
+                      <span className="px-5 text-xs font-semibold text-neutral-800 sm:text-sm">
+                        {post.title}
+                      </span>
                       <span className="text-red-600">◆</span>
                     </Link>
                   ))}
                 </div>
               </div>
             ) : (
-              <span className="flex h-full items-center px-5 text-xs font-medium text-neutral-500 sm:text-sm">Latest news will appear here.</span>
+              <span className="flex h-full items-center px-5 text-xs font-medium text-neutral-500 sm:text-sm">
+                Latest news will appear here.
+              </span>
             )}
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes flash-news-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .flash-news-track { animation: flash-news-scroll 30s linear infinite; }
-        .flash-news-track:hover { animation-play-state: paused; }
-      `}</style>
+        @keyframes flash-news-scroll {
+          from {
+            transform: translateX(0);
+          }
+          to {
+            transform: translateX(-50%);
+          }
+        }
 
+        .flash-news-track {
+          animation: flash-news-scroll 35s linear infinite;
+        }
+
+        .flash-news-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </header>
   );
 }

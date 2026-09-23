@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { BreakingTicker } from "@/components/public/breaking-ticker";
 import { InaugurationPopup } from "@/components/public/inauguration-popup";
 import { NewsCard } from "@/components/public/news-card";
 import { Button } from "@/components/ui/button";
@@ -20,22 +19,12 @@ export const revalidate = 0;
 
 // Server Component
 export default async function HomePage() {
-  const [feedRes, breakingRes, trendingRes, categories] =
+  const [feedRes, trendingRes, categories] =
     await Promise.all([
       /*
        * Main published feed
        */
       postsApi.listPublished({ page: 1 }).catch(() => ({
-        results: [] as PostSummary[],
-        count: 0,
-        next: null,
-        previous: null,
-      })),
-
-      /*
-       * Breaking news
-       */
-      postsApi.listPublished({ breaking: true }).catch(() => ({
         results: [] as PostSummary[],
         count: 0,
         next: null,
@@ -100,11 +89,6 @@ export default async function HomePage() {
       {/* MAIN WAR OF JUSTICE HOMEPAGE             */}
       {/* ========================================= */}
       <div className="mx-auto max-w-7xl px-4 py-6">
-        {/* ========================================= */}
-        {/* BREAKING NEWS                           */}
-        {/* ========================================= */}
-        <BreakingTicker posts={breakingRes.results} />
-
         {/* ========================================= */}
         {/* HERO + TOP STORIES                      */}
         {/* ========================================= */}
