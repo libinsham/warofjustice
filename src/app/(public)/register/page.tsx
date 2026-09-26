@@ -157,6 +157,20 @@ const memberSchema = z
         "Enter a valid email address",
       ),
 
+    password: z
+      .string()
+      .min(
+        8,
+        "Password must be at least 8 characters",
+      ),
+
+    confirm_password: z
+      .string()
+      .min(
+        1,
+        "Please confirm your password",
+      ),
+
     aadhaar_number: z
       .string()
       .refine(
@@ -313,6 +327,14 @@ const memberSchema = z
       z.boolean(),
   })
   .superRefine((data, ctx) => {
+    if (data.password !== data.confirm_password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirm_password"],
+        message: "Passwords do not match",
+      });
+    }
+
     if (
       data.requested_role === "other" &&
       !data.other_role?.trim()
@@ -690,6 +712,8 @@ export default function RegisterPage() {
         gender: "",
         mobile_number: "",
         email: "",
+        password: "",
+        confirm_password: "",
         aadhaar_number: "",
         pan_number: "",
         house_street: "",
@@ -952,6 +976,7 @@ export default function RegisterPage() {
           const responseData = error.response?.data;
           const formFields = [
             "full_name", "date_of_birth", "gender", "mobile_number", "email",
+            "password", "confirm_password",
             "aadhaar_number", "pan_number", "house_street", "village_town_city",
             "taluk", "mandal", "district", "state", "pin_code",
             "residency_status", "citizenship", "education", "profession",
@@ -2557,6 +2582,88 @@ export default function RegisterPage() {
                       }
                     />
 
+                  </div>
+                </section>
+
+                {/* ========================================================
+                    08 ACCOUNT DETAILS
+                    ======================================================== */}
+
+                <section>
+                  <SectionHeader
+                    number="08"
+                    title="Account Details"
+                    subtitle="Create your login credentials"
+                  />
+
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                    <div className="space-y-1.5">
+                      <Label>
+                        Login Email
+                      </Label>
+
+                      <Input
+                        type="email"
+                        value={memberForm.watch("email")}
+                        readOnly
+                        aria-readonly="true"
+                        className="bg-white"
+                      />
+
+                      <p className="text-[11px] text-gray-500">
+                        Your email address from Section 01 will be used as your login ID.
+                      </p>
+                    </div>
+
+                    <div className="mt-5 grid gap-5 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label>
+                          Password <span className="text-red-600">*</span>
+                        </Label>
+
+                        <Input
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder="Create your password"
+                          {...memberForm.register("password")}
+                          className={errorInputClass(Boolean(memberForm.formState.errors.password))}
+                        />
+
+                        <p className="text-[11px] text-gray-500">
+                          Minimum 8 characters. Choose a strong password you can remember.
+                        </p>
+
+                        <ErrorText
+                          message={
+                            memberForm.formState.errors.password?.message
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label>
+                          Confirm Password <span className="text-red-600">*</span>
+                        </Label>
+
+                        <Input
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder="Re-enter your password"
+                          {...memberForm.register("confirm_password")}
+                          className={errorInputClass(Boolean(memberForm.formState.errors.confirm_password))}
+                        />
+
+                        <ErrorText
+                          message={
+                            memberForm.formState.errors.confirm_password?.message
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">
+                      <strong>Account login:</strong> After your application is approved, use this email address and password to sign in to your War of Justice account.
+                    </div>
                   </div>
                 </section>
 

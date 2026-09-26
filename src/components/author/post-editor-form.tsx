@@ -49,6 +49,12 @@ const postSchema = z.object({
   seo_title: z.string().optional(),
 
   seo_description: z.string().optional(),
+
+  video_url: z
+    .string()
+    .url("Enter a valid video URL")
+    .or(z.literal(""))
+    .optional(),
 });
 
 
@@ -100,6 +106,22 @@ export function PostEditorForm({
 
   const [imagePreviewError, setImagePreviewError] = useState(false);
 
+  // ==============================
+  // VIDEO
+  // ==============================
+
+  const [videoUrl, setVideoUrl] = useState(
+    (existingPost as Post & { video_url?: string })?.video_url ?? ""
+  );
+
+  const [manualVideoUrl, setManualVideoUrl] = useState(
+    (existingPost as Post & { video_url?: string })?.video_url ?? ""
+  );
+
+  const [videoFileName, setVideoFileName] = useState("");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoError, setVideoError] = useState("");
+
 
   // ==============================
   // LOAD CATEGORIES
@@ -142,6 +164,9 @@ const {
 
           seo_description:
             existingPost.seo_description ?? "",
+
+          video_url:
+            (existingPost as Post & { video_url?: string })?.video_url ?? "",
         }
       : {
           title: "",
@@ -150,6 +175,7 @@ const {
           category: undefined as unknown as number,
           seo_title: "",
           seo_description: "",
+          video_url: "",
         },
   });
 
@@ -260,6 +286,115 @@ const contentValue = watch("content") ?? "";
 
 
   // ==============================
+  // VIDEO URL
+  // ==============================
+
+  const handleVideoUrlChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+
+    setManualVideoUrl(value);
+    setVideoUrl(value);
+    setVideoFileName("");
+    setVideoError("");
+
+    setValue("video_url", value, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+
+  // ==============================
+  // VIDEO UPLOAD TO R2
+  // ==============================
+
+  const handleVideoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    const allowedVideoTypes = [
+      "video/mp4",
+      "video/webm",
+      "video/quicktime",
+      "video/x-m4v",
+    ];
+
+    if (!allowedVideoTypes.includes(file.type)) {
+      setVideoError("Please select an MP4, WebM, or MOV video file.");
+      e.target.value = "";
+      return;
+    }
+
+    setUploadingVideo(true);
+    setVideoError("");
+
+    try {
+      /*
+       * Your current media API exposes uploadImage().
+       * Upload Video needs a corresponding uploadVideo() endpoint.
+       * This keeps the form type-safe while giving a clear message
+       * until that media API method is available.
+       */
+      const videoUploader = (mediaApi as typeof mediaApi & {
+        uploadVideo?: (file: File) => Promise<{ url: string }>;
+      }).uploadVideo;
+
+      if (typeof videoUploader !== "function") {
+        throw new Error(
+          "Video upload is not configured yet. Add mediaApi.uploadVideo() for Cloudflare R2 video uploads."
+        );
+      }
+
+      const media = await videoUploader(file);
+
+      if (!media?.url) {
+        throw new Error(
+          "Video upload failed. No video URL was returned."
+        );
+      }
+
+      setVideoUrl(media.url);
+      setManualVideoUrl("");
+      setVideoFileName(file.name);
+
+      setValue("video_url", media.url, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    } catch (error) {
+      console.error("Cloudflare R2 video upload error:", error);
+
+      setVideoError(
+        error instanceof Error
+          ? error.message
+          : "Video upload to Cloudflare R2 failed. You can paste a public video URL below."
+      );
+    } finally {
+      setUploadingVideo(false);
+      e.target.value = "";
+    }
+  };
+
+
+  const removeVideo = () => {
+    setVideoUrl("");
+    setManualVideoUrl("");
+    setVideoFileName("");
+    setVideoError("");
+
+    setValue("video_url", "", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+
+  // ==============================
   // SAVE / SUBMIT POST
   // ==============================
 
@@ -275,6 +410,9 @@ const contentValue = watch("content") ?? "";
 
         featured_image_url:
           featuredImageUrl.trim(),
+
+        video_url:
+          videoUrl.trim(),
       };
 
 
@@ -526,7 +664,8 @@ const contentValue = watch("content") ?? "";
 
                   disabled={
                     isLocked ||
-                    uploadingImage
+                    uploadingImage ||
+                    uploadingVideo
                   }
 
                   onChange={
@@ -621,6 +760,126 @@ const contentValue = watch("content") ?? "";
 
                 </div>
 
+              )}
+
+            </div>
+
+
+            {/* ==============================
+                VIDEO
+            ============================== */}
+
+            <div className="space-y-4">
+
+              <Label>
+                Video
+              </Label>
+
+              {videoUrl && (
+                <div className="rounded-md border bg-muted/20 p-3">
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        {videoFileName || "Video attached"}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {videoUrl}
+                      </p>
+                    </div>
+
+                    {!isLocked && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={removeVideo}
+                      >
+                        Remove Video
+                      </Button>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* UPLOAD VIDEO */}
+              <div className="space-y-2">
+
+                <Label
+                  htmlFor="post-video-upload"
+                  className="text-sm"
+                >
+                  Upload Video
+                </Label>
+
+                <Input
+                  id="post-video-upload"
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
+                  disabled={
+                    isLocked ||
+                    uploadingVideo
+                  }
+                  onChange={handleVideoUpload}
+                />
+
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: MP4, WebM, MOV. Video uploads are stored through Cloudflare R2 when the video upload API is enabled.
+                </p>
+
+                {uploadingVideo && (
+                  <p className="text-xs text-muted-foreground">
+                    Uploading video to Cloudflare R2...
+                  </p>
+                )}
+
+              </div>
+
+              {/* OR DIVIDER */}
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">OR</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* VIDEO URL */}
+              <div className="space-y-2">
+
+                <Label
+                  htmlFor="post-video-url"
+                  className="text-sm"
+                >
+                  Video URL
+                </Label>
+
+                <Input
+                  id="post-video-url"
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={manualVideoUrl}
+                  disabled={isLocked}
+                  onChange={handleVideoUrlChange}
+                />
+
+                <p className="text-xs text-muted-foreground">
+                  Paste a public YouTube, Vimeo, or direct video URL.
+                </p>
+
+                {errors.video_url && (
+                  <p className="text-xs text-destructive">
+                    {errors.video_url.message}
+                  </p>
+                )}
+
+              </div>
+
+              {videoError && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
+                  <p className="text-sm text-amber-800">
+                    {videoError}
+                  </p>
+                </div>
               )}
 
             </div>
@@ -852,7 +1111,8 @@ const contentValue = watch("content") ?? "";
 
                   disabled={
                     isSaving ||
-                    uploadingImage
+                    uploadingImage ||
+                    uploadingVideo
                   }
 
                   onClick={handleSubmit(
@@ -914,7 +1174,8 @@ const contentValue = watch("content") ?? "";
 
                   disabled={
                     isSaving ||
-                    uploadingImage
+                    uploadingImage ||
+                    uploadingVideo
                   }
 
                   onClick={handleSubmit(
