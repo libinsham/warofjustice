@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,7 +51,6 @@ const postSchema = z.object({
 
   seo_description: z.string().optional(),
 
-  publish_video_to_youtube: z.boolean(),
 
   video_url: z
     .string()
@@ -109,19 +109,14 @@ export function PostEditorForm({
   const [imagePreviewError, setImagePreviewError] = useState(false);
 
   // ==============================
-  // VIDEO / YOUTUBE
+  // VIDEO
   // ==============================
 
   type PostWithVideo = Post & {
     video_url?: string;
-    publish_video_to_youtube?: boolean;
   };
 
   const existingPostWithVideo = existingPost as PostWithVideo | undefined;
-
-  const [publishVideoToYouTube, setPublishVideoToYouTube] = useState(
-    existingPostWithVideo?.publish_video_to_youtube ?? false
-  );
 
   const [videoUrl, setVideoUrl] = useState(
     existingPostWithVideo?.video_url ?? ""
@@ -174,8 +169,6 @@ const {
           seo_description:
             existingPost.seo_description ?? "",
 
-          publish_video_to_youtube:
-            existingPostWithVideo?.publish_video_to_youtube ?? false,
 
           video_url:
             existingPostWithVideo?.video_url ?? "",
@@ -187,7 +180,6 @@ const {
           category: undefined as unknown as number,
           seo_title: "",
           seo_description: "",
-          publish_video_to_youtube: false,
           video_url: "",
         },
   });
@@ -299,36 +291,7 @@ const contentValue = watch("content") ?? "";
 
 
   // ==============================
-  // VIDEO / YOUTUBE
-  // ==============================
-
-  const handlePublishVideoChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const checked = e.target.checked;
-
-    setPublishVideoToYouTube(checked);
-
-    setValue("publish_video_to_youtube", checked, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-
-    if (!checked) {
-      setVideoUrl("");
-      setVideoFileName("");
-      setVideoError("");
-
-      setValue("video_url", "", {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-  };
-
-
-  // ==============================
-  // VIDEO UPLOAD TO R2
+  // VIDEO UPLOAD
   // ==============================
 
   const handleVideoUpload = async (
@@ -337,14 +300,6 @@ const contentValue = watch("content") ?? "";
     const file = e.target.files?.[0];
 
     if (!file) return;
-
-    if (!publishVideoToYouTube) {
-      setVideoError(
-        "Enable 'Publish Video to YouTube as Unlisted' before selecting a video."
-      );
-      e.target.value = "";
-      return;
-    }
 
     const allowedVideoTypes = [
       "video/mp4",
@@ -364,9 +319,9 @@ const contentValue = watch("content") ?? "";
 
     try {
       /*
-       * The backend will provide the real R2 video upload
-       * implementation. The frontend calls mediaApi.uploadVideo()
-       * when that API is available.
+       * The author uploads the source video here.
+       * The admin will decide later whether the approved
+       * video should be published to YouTube as unlisted.
        */
       const videoUploader = (mediaApi as typeof mediaApi & {
         uploadVideo?: (file: File) => Promise<{ url: string }>;
@@ -382,17 +337,12 @@ const contentValue = watch("content") ?? "";
 
       if (!media?.url) {
         throw new Error(
-          "Video upload failed. No video URL was returned."
+          "Video upload failed. No video reference was returned."
         );
       }
 
       setVideoUrl(media.url);
       setVideoFileName(file.name);
-
-      setValue("publish_video_to_youtube", true, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
 
       setValue("video_url", media.url, {
         shouldDirty: true,
@@ -442,20 +392,9 @@ const contentValue = watch("content") ?? "";
         featured_image_url:
           featuredImageUrl.trim(),
 
-        publish_video_to_youtube:
-          publishVideoToYouTube,
-
         video_url:
-          publishVideoToYouTube
-            ? videoUrl.trim()
-            : "",
+          videoUrl.trim(),
       };
-
-      if (publishVideoToYouTube && !videoUrl.trim()) {
-        throw new Error(
-          "Please upload a video before submitting this post."
-        );
-      }
 
 
       const saved = isEditing
@@ -492,7 +431,16 @@ const contentValue = watch("content") ?? "";
 
 
   return (
-    <form className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <>
+      {!isEditing && (
+        <div className="mb-4 flex justify-end">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/author/posts/bulk">Bulk Posts</Link>
+          </Button>
+        </div>
+      )}
+
+      <form className="grid gap-6 lg:grid-cols-[1fr_320px]">
 
       {/* ==============================
           LEFT SIDE
@@ -815,139 +763,94 @@ const contentValue = watch("content") ?? "";
 
             <div className="space-y-4">
 
-              <div className="rounded-md border bg-muted/20 p-4">
+              <div>
+                <Label>
+                  Video
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Upload a video with this article. The admin will review the
+                  video and decide whether to publish it to the War of Justice
+                  YouTube channel as an unlisted video after approval.
+                </p>
+              </div>
 
-                <div className="flex items-start gap-3">
 
-                  <input
-                    id="publish-video-youtube"
-                    type="checkbox"
-                    checked={publishVideoToYouTube}
+              {videoUrl && (
+                <div className="rounded-md border bg-muted/20 p-3">
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        {videoFileName || "Video attached"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Video attached and will be available to the admin for review.
+                      </p>
+                    </div>
+
+                    {!isLocked && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={removeVideo}
+                      >
+                        Remove Video
+                      </Button>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+
+              {!videoUrl && (
+                <div className="space-y-2">
+
+                  <Label
+                    htmlFor="post-video-upload"
+                    className="text-sm"
+                  >
+                    Upload Video
+                  </Label>
+
+                  <Input
+                    id="post-video-upload"
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
                     disabled={
                       isLocked ||
                       uploadingVideo
                     }
-                    onChange={handlePublishVideoChange}
-                    className="mt-1 h-4 w-4 rounded border-input"
+                    onChange={handleVideoUpload}
                   />
 
-                  <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    Supported formats: MP4, WebM, MOV.
+                  </p>
 
-                    <Label
-                      htmlFor="publish-video-youtube"
-                      className="cursor-pointer text-sm font-semibold"
-                    >
-                      Publish Video to YouTube as Unlisted
-                    </Label>
-
+                  {uploadingVideo && (
                     <p className="text-xs text-muted-foreground">
-                      When enabled, the selected video will be prepared
-                      for upload to the War of Justice YouTube channel
-                      as an unlisted video after approval.
+                      Uploading video...
                     </p>
-
-                  </div>
+                  )}
 
                 </div>
-
-              </div>
-
-
-              {publishVideoToYouTube && (
-                <>
-
-                  {videoUrl && (
-                    <div className="rounded-md border bg-muted/20 p-3">
-
-                      <div className="flex items-center justify-between gap-3">
-
-                        <div className="min-w-0">
-
-                          <p className="text-sm font-medium">
-                            {videoFileName || "Video attached"}
-                          </p>
-
-                          <p className="mt-1 truncate text-xs text-muted-foreground">
-                            Video uploaded and ready for processing.
-                          </p>
-
-                        </div>
-
-                        {!isLocked && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={removeVideo}
-                          >
-                            Remove Video
-                          </Button>
-                        )}
-
-                      </div>
-
-                    </div>
-                  )}
-
-
-                  {/* UPLOAD VIDEO */}
-
-                  {!videoUrl && (
-                    <div className="space-y-2">
-
-                      <Label
-                        htmlFor="post-video-upload"
-                        className="text-sm"
-                      >
-                        Upload Video
-                      </Label>
-
-                      <Input
-                        id="post-video-upload"
-                        type="file"
-                        accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
-                        disabled={
-                          isLocked ||
-                          uploadingVideo
-                        }
-                        onChange={handleVideoUpload}
-                      />
-
-                      <p className="text-xs text-muted-foreground">
-                        Supported formats: MP4, WebM, MOV.
-                      </p>
-
-                      {uploadingVideo && (
-                        <p className="text-xs text-muted-foreground">
-                          Uploading video...
-                        </p>
-                      )}
-
-                    </div>
-                  )}
-
-                  {videoError && (
-                    <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
-
-                      <p className="text-sm text-amber-800">
-                        {videoError}
-                      </p>
-
-                    </div>
-                  )}
-
-                  {!videoUrl && !videoError && !uploadingVideo && (
-                    <p className="text-xs text-muted-foreground">
-                      Select a video to attach it to this article.
-                    </p>
-                  )}
-
-                </>
               )}
 
-              {!publishVideoToYouTube && (
+
+              {videoError && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
+                  <p className="text-sm text-amber-800">
+                    {videoError}
+                  </p>
+                </div>
+              )}
+
+
+              {!videoUrl && !videoError && !uploadingVideo && (
                 <p className="text-xs text-muted-foreground">
-                  This article will be published without a video.
+                  Video is optional. You can submit this article without a video.
                 </p>
               )}
 
@@ -1276,6 +1179,7 @@ const contentValue = watch("content") ?? "";
       </div>
 
 
-    </form>
+      </form>
+    </>
   );
 }
