@@ -8,6 +8,8 @@ import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { useAuth } from "@/providers/auth-provider";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -69,6 +71,7 @@ export function PostEditorForm({
   existingPost?: Post;
 }) {
   const router = useRouter();
+  const { isSuperAdmin } = useAuth();
 
   const isEditing = !!existingPost;
 
@@ -432,7 +435,7 @@ const contentValue = watch("content") ?? "";
 
   return (
     <>
-      {!isEditing && (
+      {!isEditing && isSuperAdmin && (
         <div className="mb-4 flex justify-end">
           <Button asChild variant="outline" size="sm">
             <Link href="/author/posts/bulk">Bulk Posts</Link>
