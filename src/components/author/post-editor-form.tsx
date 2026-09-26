@@ -50,6 +50,8 @@ const postSchema = z.object({
 
   seo_description: z.string().optional(),
 
+  publish_video_to_youtube: z.boolean(),
+
   video_url: z
     .string()
     .url("Enter a valid video URL")
@@ -107,15 +109,22 @@ export function PostEditorForm({
   const [imagePreviewError, setImagePreviewError] = useState(false);
 
   // ==============================
-  // VIDEO
+  // VIDEO / YOUTUBE
   // ==============================
 
-  const [videoUrl, setVideoUrl] = useState(
-    (existingPost as Post & { video_url?: string })?.video_url ?? ""
+  type PostWithVideo = Post & {
+    video_url?: string;
+    publish_video_to_youtube?: boolean;
+  };
+
+  const existingPostWithVideo = existingPost as PostWithVideo | undefined;
+
+  const [publishVideoToYouTube, setPublishVideoToYouTube] = useState(
+    existingPostWithVideo?.publish_video_to_youtube ?? false
   );
 
-  const [manualVideoUrl, setManualVideoUrl] = useState(
-    (existingPost as Post & { video_url?: string })?.video_url ?? ""
+  const [videoUrl, setVideoUrl] = useState(
+    existingPostWithVideo?.video_url ?? ""
   );
 
   const [videoFileName, setVideoFileName] = useState("");
@@ -165,8 +174,11 @@ const {
           seo_description:
             existingPost.seo_description ?? "",
 
+          publish_video_to_youtube:
+            existingPostWithVideo?.publish_video_to_youtube ?? false,
+
           video_url:
-            (existingPost as Post & { video_url?: string })?.video_url ?? "",
+            existingPostWithVideo?.video_url ?? "",
         }
       : {
           title: "",
@@ -175,6 +187,7 @@ const {
           category: undefined as unknown as number,
           seo_title: "",
           seo_description: "",
+          publish_video_to_youtube: false,
           video_url: "",
         },
   });
@@ -286,23 +299,31 @@ const contentValue = watch("content") ?? "";
 
 
   // ==============================
-  // VIDEO URL
+  // VIDEO / YOUTUBE
   // ==============================
 
-  const handleVideoUrlChange = (
+  const handlePublishVideoChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const value = e.target.value;
+    const checked = e.target.checked;
 
-    setManualVideoUrl(value);
-    setVideoUrl(value);
-    setVideoFileName("");
-    setVideoError("");
+    setPublishVideoToYouTube(checked);
 
-    setValue("video_url", value, {
+    setValue("publish_video_to_youtube", checked, {
       shouldDirty: true,
       shouldValidate: true,
     });
+
+    if (!checked) {
+      setVideoUrl("");
+      setVideoFileName("");
+      setVideoError("");
+
+      setValue("video_url", "", {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
   };
 
 
@@ -316,6 +337,14 @@ const contentValue = watch("content") ?? "";
     const file = e.target.files?.[0];
 
     if (!file) return;
+
+    if (!publishVideoToYouTube) {
+      setVideoError(
+        "Enable 'Publish Video to YouTube as Unlisted' before selecting a video."
+      );
+      e.target.value = "";
+      return;
+    }
 
     const allowedVideoTypes = [
       "video/mp4",
@@ -335,10 +364,9 @@ const contentValue = watch("content") ?? "";
 
     try {
       /*
-       * Your current media API exposes uploadImage().
-       * Upload Video needs a corresponding uploadVideo() endpoint.
-       * This keeps the form type-safe while giving a clear message
-       * until that media API method is available.
+       * The backend will provide the real R2 video upload
+       * implementation. The frontend calls mediaApi.uploadVideo()
+       * when that API is available.
        */
       const videoUploader = (mediaApi as typeof mediaApi & {
         uploadVideo?: (file: File) => Promise<{ url: string }>;
@@ -346,7 +374,7 @@ const contentValue = watch("content") ?? "";
 
       if (typeof videoUploader !== "function") {
         throw new Error(
-          "Video upload is not configured yet. Add mediaApi.uploadVideo() for Cloudflare R2 video uploads."
+          "Video upload is not configured yet. The backend R2 video upload API must be added."
         );
       }
 
@@ -359,20 +387,24 @@ const contentValue = watch("content") ?? "";
       }
 
       setVideoUrl(media.url);
-      setManualVideoUrl("");
       setVideoFileName(file.name);
+
+      setValue("publish_video_to_youtube", true, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
 
       setValue("video_url", media.url, {
         shouldDirty: true,
         shouldValidate: true,
       });
     } catch (error) {
-      console.error("Cloudflare R2 video upload error:", error);
+      console.error("Video upload error:", error);
 
       setVideoError(
         error instanceof Error
           ? error.message
-          : "Video upload to Cloudflare R2 failed. You can paste a public video URL below."
+          : "Video upload failed."
       );
     } finally {
       setUploadingVideo(false);
@@ -383,7 +415,6 @@ const contentValue = watch("content") ?? "";
 
   const removeVideo = () => {
     setVideoUrl("");
-    setManualVideoUrl("");
     setVideoFileName("");
     setVideoError("");
 
@@ -411,9 +442,20 @@ const contentValue = watch("content") ?? "";
         featured_image_url:
           featuredImageUrl.trim(),
 
+        publish_video_to_youtube:
+          publishVideoToYouTube,
+
         video_url:
-          videoUrl.trim(),
+          publishVideoToYouTube
+            ? videoUrl.trim()
+            : "",
       };
+
+      if (publishVideoToYouTube && !videoUrl.trim()) {
+        throw new Error(
+          "Please upload a video before submitting this post."
+        );
+      }
 
 
       const saved = isEditing
@@ -438,7 +480,9 @@ const contentValue = watch("content") ?? "";
       );
 
       alert(
-        "Unable to save the post. Please check your details and try again."
+        error instanceof Error
+          ? error.message
+          : "Unable to save the post. Please check your details and try again."
       );
 
     } finally {
@@ -771,115 +815,140 @@ const contentValue = watch("content") ?? "";
 
             <div className="space-y-4">
 
-              <Label>
-                Video
-              </Label>
+              <div className="rounded-md border bg-muted/20 p-4">
 
-              {videoUrl && (
-                <div className="rounded-md border bg-muted/20 p-3">
+                <div className="flex items-start gap-3">
 
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">
-                        {videoFileName || "Video attached"}
-                      </p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {videoUrl}
-                      </p>
-                    </div>
+                  <input
+                    id="publish-video-youtube"
+                    type="checkbox"
+                    checked={publishVideoToYouTube}
+                    disabled={
+                      isLocked ||
+                      uploadingVideo
+                    }
+                    onChange={handlePublishVideoChange}
+                    className="mt-1 h-4 w-4 rounded border-input"
+                  />
 
-                    {!isLocked && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={removeVideo}
-                      >
-                        Remove Video
-                      </Button>
-                    )}
+                  <div className="space-y-1">
+
+                    <Label
+                      htmlFor="publish-video-youtube"
+                      className="cursor-pointer text-sm font-semibold"
+                    >
+                      Publish Video to YouTube as Unlisted
+                    </Label>
+
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, the selected video will be prepared
+                      for upload to the War of Justice YouTube channel
+                      as an unlisted video after approval.
+                    </p>
+
                   </div>
 
                 </div>
+
+              </div>
+
+
+              {publishVideoToYouTube && (
+                <>
+
+                  {videoUrl && (
+                    <div className="rounded-md border bg-muted/20 p-3">
+
+                      <div className="flex items-center justify-between gap-3">
+
+                        <div className="min-w-0">
+
+                          <p className="text-sm font-medium">
+                            {videoFileName || "Video attached"}
+                          </p>
+
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            Video uploaded and ready for processing.
+                          </p>
+
+                        </div>
+
+                        {!isLocked && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={removeVideo}
+                          >
+                            Remove Video
+                          </Button>
+                        )}
+
+                      </div>
+
+                    </div>
+                  )}
+
+
+                  {/* UPLOAD VIDEO */}
+
+                  {!videoUrl && (
+                    <div className="space-y-2">
+
+                      <Label
+                        htmlFor="post-video-upload"
+                        className="text-sm"
+                      >
+                        Upload Video
+                      </Label>
+
+                      <Input
+                        id="post-video-upload"
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
+                        disabled={
+                          isLocked ||
+                          uploadingVideo
+                        }
+                        onChange={handleVideoUpload}
+                      />
+
+                      <p className="text-xs text-muted-foreground">
+                        Supported formats: MP4, WebM, MOV.
+                      </p>
+
+                      {uploadingVideo && (
+                        <p className="text-xs text-muted-foreground">
+                          Uploading video...
+                        </p>
+                      )}
+
+                    </div>
+                  )}
+
+                  {videoError && (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
+
+                      <p className="text-sm text-amber-800">
+                        {videoError}
+                      </p>
+
+                    </div>
+                  )}
+
+                  {!videoUrl && !videoError && !uploadingVideo && (
+                    <p className="text-xs text-muted-foreground">
+                      Select a video to attach it to this article.
+                    </p>
+                  )}
+
+                </>
               )}
 
-              {/* UPLOAD VIDEO */}
-              <div className="space-y-2">
-
-                <Label
-                  htmlFor="post-video-upload"
-                  className="text-sm"
-                >
-                  Upload Video
-                </Label>
-
-                <Input
-                  id="post-video-upload"
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
-                  disabled={
-                    isLocked ||
-                    uploadingVideo
-                  }
-                  onChange={handleVideoUpload}
-                />
-
+              {!publishVideoToYouTube && (
                 <p className="text-xs text-muted-foreground">
-                  Supported formats: MP4, WebM, MOV. Video uploads are stored through Cloudflare R2 when the video upload API is enabled.
+                  This article will be published without a video.
                 </p>
-
-                {uploadingVideo && (
-                  <p className="text-xs text-muted-foreground">
-                    Uploading video to Cloudflare R2...
-                  </p>
-                )}
-
-              </div>
-
-              {/* OR DIVIDER */}
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted-foreground">OR</span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-
-              {/* VIDEO URL */}
-              <div className="space-y-2">
-
-                <Label
-                  htmlFor="post-video-url"
-                  className="text-sm"
-                >
-                  Video URL
-                </Label>
-
-                <Input
-                  id="post-video-url"
-                  type="url"
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={manualVideoUrl}
-                  disabled={isLocked}
-                  onChange={handleVideoUrlChange}
-                />
-
-                <p className="text-xs text-muted-foreground">
-                  Paste a public YouTube, Vimeo, or direct video URL.
-                </p>
-
-                {errors.video_url && (
-                  <p className="text-xs text-destructive">
-                    {errors.video_url.message}
-                  </p>
-                )}
-
-              </div>
-
-              {videoError && (
-                <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
-                  <p className="text-sm text-amber-800">
-                    {videoError}
-                  </p>
-                </div>
               )}
 
             </div>
