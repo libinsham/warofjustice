@@ -95,18 +95,6 @@ export default function BulkPostsPage() {
 
   const typedCategories = categories as Category[];
 
-  const expandedPosts = useMemo(
-    () => posts.filter((post) => post.isExpanded),
-    [posts],
-  );
-
-  const collapsedPosts = useMemo(
-    () => posts.filter((post) => !post.isExpanded),
-    [posts],
-  );
-
-  const expandedCount = expandedPosts.length;
-
   const updateCount = (nextCount: PostCount) => {
     if (isSaving) return;
 
@@ -340,16 +328,14 @@ export default function BulkPostsPage() {
     [posts],
   );
 
-  const columnCount = Math.max(1, expandedCount);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Bulk Posts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prepare 1, 5, or 10 articles. Expand only the posts you are editing.
-            Open posts automatically share the available width.
+            Prepare 1, 5, or 10 articles in a responsive grid. Collapse individual
+            posts to keep their headings visible while reducing their card width.
           </p>
         </div>
 
@@ -393,45 +379,12 @@ export default function BulkPostsPage() {
         </div>
       )}
 
-      {/*
-       * Desktop layout:
-       * 1 open  = 100%
-       * 2 open  = 50% / 50%
-       * 3 open  = 33.33% each
-       * 4 open  = 25% each
-       * 5 open  = 20% each
-       *
-       * Collapsed posts are removed from this editing grid and placed
-       * into a separate compact row below. This keeps the open columns
-       * evenly sized and prevents collapsed posts from consuming space.
-       */}
-      <div
-        className="hidden gap-6 lg:grid"
-        style={{
-          gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-        }}
-      >
-        {expandedPosts.map((post) => {
-          const index = posts.findIndex((item) => item.localId === post.localId);
-          return renderPostCard({
-            post,
-            index,
-            categories: typedCategories,
-            isSaving,
-            onToggle: togglePostExpanded,
-            onRemove: removePost,
-            onUpdate: updatePost,
-            onImageUpload: handleImageUpload,
-            onVideoSelect: handleVideoSelect,
-            onClearVideo: clearVideo,
-          });
-        })}
-      </div>
-
-      {/* Mobile / tablet: one column for readability. */}
-      <div className="grid grid-cols-1 gap-6 lg:hidden">
+      {/* All posts stay in one responsive grid. At wide desktop sizes,
+          five cards appear per row; collapsed cards remain in their cells. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {posts.map((post) => {
           const index = posts.findIndex((item) => item.localId === post.localId);
+
           return renderPostCard({
             post,
             index,
@@ -446,59 +399,6 @@ export default function BulkPostsPage() {
           });
         })}
       </div>
-
-      {collapsedPosts.length > 0 && (
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle className="text-base">Collapsed Posts</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 pt-4">
-            {collapsedPosts.map((post) => {
-              const index = posts.findIndex((item) => item.localId === post.localId);
-
-              return (
-                <div
-                  key={post.localId}
-                  className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">Post {index + 1}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {post.title.trim() || "No title entered"}
-                    </p>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => togglePostExpanded(post.localId)}
-                      disabled={isSaving}
-                    >
-                      <Plus className="mr-1 h-4 w-4" />
-                      Open
-                    </Button>
-
-                    {posts.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => removePost(post.localId)}
-                        disabled={isSaving}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:justify-end">
@@ -522,9 +422,9 @@ export default function BulkPostsPage() {
       </Card>
 
       <div className="pb-6 text-center text-xs text-muted-foreground">
-        Open posts share the desktop width equally. Collapsing a post removes it
-        from the editing grid and moves it into the collapsed section. Click + / Open
-        to bring it back into the equal-width columns. Scheduled publishing is
+        On wide screens, posts appear in five columns. Use − to hide an individual
+        post's fields while keeping its heading visible; use + to expand it again.
+        Collapsed cards occupy 80% of their grid cell. Scheduled publishing is
         prepared in the frontend and will be enforced by the backend later.
       </div>
     </div>
@@ -563,7 +463,11 @@ function renderPostCard({
   onClearVideo,
 }: RenderPostCardArgs) {
   return (
-    <Card className="min-w-0 overflow-hidden">
+    <Card
+      className={`min-w-0 overflow-hidden transition-all duration-300 ${
+        post.isExpanded ? "w-full" : "mx-auto w-4/5"
+      }`}
+    >
       <CardHeader className="flex flex-row items-center justify-between gap-3 border-b">
         <div className="flex min-w-0 items-center gap-3">
           <Button
@@ -572,10 +476,14 @@ function renderPostCard({
             size="icon"
             onClick={() => onToggle(post.localId)}
             disabled={isSaving}
-            aria-label={`Collapse Post ${index + 1}`}
-            title="Collapse"
+            aria-label={`${post.isExpanded ? "Collapse" : "Expand"} Post ${index + 1}`}
+            title={post.isExpanded ? "Collapse post" : "Expand post"}
           >
-            <Minus className="h-4 w-4" />
+            {post.isExpanded ? (
+              <Minus className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
           </Button>
 
           <div className="min-w-0">
@@ -601,6 +509,7 @@ function renderPostCard({
         )}
       </CardHeader>
 
+      {post.isExpanded && (
       <CardContent className="space-y-6 pt-6">
         <div className="space-y-1.5">
           <Label htmlFor={`bulk-title-${post.localId}`}>
@@ -898,6 +807,7 @@ function renderPostCard({
           </div>
         </div>
       </CardContent>
+      )}
     </Card>
   );
 }
