@@ -673,7 +673,7 @@ const contentValue = watch("content") ?? "";
 
                   <p className="text-xs text-muted-foreground">
 
-                    Uploading image to Cloudflare R2...
+                    Uploading image to image storage...
 
                   </p>
 
@@ -734,7 +734,7 @@ const contentValue = watch("content") ?? "";
                 <p className="text-xs text-muted-foreground">
 
                   Paste any public image URL here.
-                  This can be used if Cloudflare R2 upload is unavailable.
+                  This can be used if image website space upload is unavailable.
 
                 </p>
 

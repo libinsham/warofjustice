@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      // Cloudflare R2
+      //  R two
       {
         protocol: "https",
         hostname: "**.r2.cloudflarestorage.com",
