@@ -14,6 +14,7 @@ import { useAuth } from "@/providers/auth-provider";
  * - author
  * - admin
  * - super_admin
+ * - super_super_admin
  * - subscriber
  */
 export function ProtectedRoute({
@@ -25,6 +26,7 @@ export function ProtectedRoute({
     | "author"
     | "admin"
     | "super_admin"
+    | "super_super_admin"
     | "subscriber";
 }) {
   const {
@@ -33,6 +35,7 @@ export function ProtectedRoute({
     isAuthor,
     isAdmin,
     isSuperAdmin,
+    isSuperSuperAdmin,
     refresh,
   } = useAuth();
 
@@ -58,6 +61,7 @@ export function ProtectedRoute({
         if (!cancelled) {
           setCheckingSession(false);
         }
+
         return;
       }
 
@@ -97,14 +101,16 @@ export function ProtectedRoute({
    */
   const roleName = user?.role?.name;
 
-const allowed =
-  requireRole === "author"
-    ? isAuthor
-    : requireRole === "admin"
-      ? isAdmin
-      : requireRole === "super_admin"
-        ? isSuperAdmin
-        : String(roleName) === "subscriber";
+  const allowed =
+    requireRole === "author"
+      ? isAuthor
+      : requireRole === "admin"
+        ? isAdmin
+        : requireRole === "super_admin"
+          ? isSuperAdmin
+          : requireRole === "super_super_admin"
+            ? isSuperSuperAdmin
+            : String(roleName) === "subscriber";
 
   /*
    * Redirect only after the session check has completed.
