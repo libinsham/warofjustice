@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -17,6 +18,8 @@ import {
   LockKeyhole,
   Settings,
   Sparkles,
+  FilePlus,
+  Files,
 } from "lucide-react";
 
 import { QueryProvider } from "@/providers/query-provider";
@@ -40,6 +43,18 @@ const SUPER_ADMIN_NAV: SidebarItem[] = [
     href: "/super-admin/ai-post",
     label: "AI Post Generator",
     icon: Sparkles,
+  },
+
+  {
+    href: "/super-admin/posts/new",
+    label: "Create Post",
+    icon: FilePlus,
+  },
+
+  {
+    href: "/super-admin/posts/bulk",
+    label: "Bulk Posts",
+    icon: Files,
   },
 
   {
