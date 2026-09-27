@@ -7,12 +7,14 @@
 ========================================================= */
 
 export type RoleName =
+  | "super_super_admin"
   | "super_admin"
+  | "super_author"
   | "admin"
   | "author"
   | "member"
   | "contributor"
-  | "reader";
+  | "subscriber";
 
 export interface Role {
   id: number;

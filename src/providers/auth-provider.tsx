@@ -17,9 +17,12 @@ import type { User } from "@/types";
 interface AuthContextValue {
   user: User | null;
   status: "loading" | "authenticated" | "unauthenticated";
+
   isAuthor: boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isSuperSuperAdmin: boolean;
+
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -35,7 +38,8 @@ export function AuthProvider({
   children: React.ReactNode;
   autoLoadUser?: boolean;
 }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] =
+    useState<User | null>(null);
 
   const [status, setStatus] =
     useState<AuthContextValue["status"]>(
@@ -69,7 +73,7 @@ export function AuthProvider({
 
       /*
        * Ignore this response when a newer auth operation
-       * (login/logout/refresh) has already started.
+       * has already started.
        */
       if (
         operationId !==
@@ -257,16 +261,18 @@ export function AuthProvider({
     user?.role?.name;
 
   /*
-   * Member & Contributor use the SAME publishing flow.
+   * ---------------------------------------------------------
+   * AUTHOR / PUBLISHING ACCESS
+   * ---------------------------------------------------------
    *
-   * Therefore all of these can access the Author/Publishing
-   * dashboard:
+   * These roles can access the Author / Publishing area:
    *
    * author
    * member
    * contributor
    * admin
    * super_admin
+   * super_super_admin
    */
 
   const isAuthor =
@@ -274,14 +280,44 @@ export function AuthProvider({
     roleName === "member" ||
     roleName === "contributor" ||
     roleName === "admin" ||
-    roleName === "super_admin";
+    roleName === "super_admin" ||
+    roleName === "super_super_admin";
+
+  /*
+   * ---------------------------------------------------------
+   * ADMIN ACCESS
+   * ---------------------------------------------------------
+   *
+   * Super Super Admin inherits Admin-level access.
+   */
 
   const isAdmin =
     roleName === "admin" ||
-    roleName === "super_admin";
+    roleName === "super_admin" ||
+    roleName === "super_super_admin";
+
+  /*
+   * ---------------------------------------------------------
+   * SUPER ADMIN ACCESS
+   * ---------------------------------------------------------
+   *
+   * Super Super Admin also has Super Admin-level access.
+   */
 
   const isSuperAdmin =
-    roleName === "super_admin";
+    roleName === "super_admin" ||
+    roleName === "super_super_admin";
+
+  /*
+   * ---------------------------------------------------------
+   * SUPER SUPER ADMIN ACCESS
+   * ---------------------------------------------------------
+   *
+   * ONLY the new super_super_admin role gets this flag.
+   */
+
+  const isSuperSuperAdmin =
+    roleName === "super_super_admin";
 
   /* =========================================================
      CONTEXT VALUE
@@ -292,13 +328,11 @@ export function AuthProvider({
     status,
 
     isAuthor,
-
     isAdmin,
-
     isSuperAdmin,
+    isSuperSuperAdmin,
 
     login,
-
     logout,
 
     refresh: loadUser,
