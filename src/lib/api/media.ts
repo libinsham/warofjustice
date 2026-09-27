@@ -1,6 +1,5 @@
-
 import { apiClient } from "./client";
-import type { Media, Paginated } from "@/types";
+import type { Media, Paginated, Video } from "@/types";
 
 interface ImagePresignResponse {
   upload_url: string;
@@ -35,6 +34,22 @@ interface VideoDownloadResponse {
   expires_in: number;
 }
 
+interface MediaListFilters {
+  type?: string;
+  search?: string;
+  page?: number;
+}
+
+type MediaListResponse = Paginated<Media> | Media[];
+
+function getMediaItems(response: MediaListResponse): Media[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.results ?? [];
+}
+
 const ALLOWED_VIDEO_TYPES = [
   "video/mp4",
   "video/webm",
@@ -45,7 +60,9 @@ const ALLOWED_VIDEO_TYPES = [
 const MAX_VIDEO_SIZE_BYTES = 5 * 1024 * 1024 * 1024;
 
 export const mediaApi = {
+  // ==========================================
   // IMAGE UPLOAD TO CLOUDFLARE R2
+  // ==========================================
 
   async uploadImage(file: File): Promise<Media> {
     const { data: presign } =
@@ -96,12 +113,11 @@ export const mediaApi = {
     };
   },
 
+  // ==========================================
   // VIDEO UPLOAD TO CLOUDFLARE R2
+  // ==========================================
 
-  async uploadVideo(
-    file: File,
-    title: string = "",
-  ): Promise<R2Video> {
+  async uploadVideo(file: File, title: string = ""): Promise<R2Video> {
     if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
       throw new Error(
         "Please select an MP4, WebM, or MOV video file.",
@@ -168,17 +184,21 @@ export const mediaApi = {
     return video;
   },
 
+  // ==========================================
   // MY VIDEOS
+  // ==========================================
 
-  async listMyVideos(): Promise<Paginated<R2Video>> {
-    const { data } = await apiClient.get<Paginated<R2Video>>(
+  async listMyVideos(): Promise<Paginated<Video>> {
+    const { data } = await apiClient.get<Paginated<Video>>(
       "/dashboard/videos/",
     );
 
     return data;
   },
 
+  // ==========================================
   // ADMIN VIDEO DOWNLOAD
+  // ==========================================
 
   async getVideoDownloadUrl(id: number): Promise<string> {
     const { data } = await apiClient.get<VideoDownloadResponse>(
@@ -192,33 +212,48 @@ export const mediaApi = {
     return data.download_url;
   },
 
+  // ==========================================
   // MY MEDIA
+  // Return an array so pages can use .filter(), .map() and .length.
+  // ==========================================
 
-  async listMine(page?: number): Promise<Paginated<Media>> {
-    const { data } = await apiClient.get<Paginated<Media>>(
+  async listMine(page?: number): Promise<Media[]> {
+    const { data } = await apiClient.get<MediaListResponse>(
       "/dashboard/media/",
       {
         params: page ? { page } : undefined,
       },
     );
 
-    return data;
+    return getMediaItems(data);
   },
 
+  // ==========================================
   // ALL MEDIA
+  // Supports admin filters and a page number for compatibility.
+  // ==========================================
 
-  async listAll(page?: number): Promise<Paginated<Media>> {
-    const { data } = await apiClient.get<Paginated<Media>>(
+  async listAll(
+    filters: MediaListFilters | number = {},
+  ): Promise<Media[]> {
+    const params =
+      typeof filters === "number"
+        ? { page: filters }
+        : filters;
+
+    const { data } = await apiClient.get<MediaListResponse>(
       "/dashboard/media/",
       {
-        params: page ? { page } : undefined,
+        params,
       },
     );
 
-    return data;
+    return getMediaItems(data);
   },
 
+  // ==========================================
   // DELETE MEDIA
+  // ==========================================
 
   async remove(id: number): Promise<void> {
     await apiClient.delete(`/dashboard/media/${id}/`);
