@@ -129,7 +129,12 @@ function isReviewable(status: string) {
 }
 
 export default function AdminPostsPage() {
-  const { status: authStatus, isAdmin, isSuperAdmin } = useAuth();
+  const {
+    status: authStatus,
+    isAdmin,
+    isSuperAdmin,
+    isSuperSuperAdmin,
+  } = useAuth();
 
   const queryClient = useQueryClient();
 
@@ -167,7 +172,7 @@ export default function AdminPostsPage() {
 
     enabled:
       authStatus === "authenticated" &&
-      (isAdmin || isSuperAdmin),
+      (isAdmin || isSuperAdmin || isSuperSuperAdmin),
   });
 
   const posts = data?.results ?? [];
@@ -230,7 +235,7 @@ export default function AdminPostsPage() {
     );
   }
 
-  if (!isAdmin && !isSuperAdmin) {
+  if (!isAdmin && !isSuperAdmin && !isSuperSuperAdmin) {
     return (
       <div className="rounded-lg border bg-white p-8 text-center">
         <h2 className="text-lg font-bold">

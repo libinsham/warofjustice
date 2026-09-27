@@ -15,11 +15,11 @@ import {
   Download,
   X,
   Edit3,
-  Eye,
   ChevronDown,
   Sparkles,
   Save,
   RotateCcw,
+  FileUp,
 } from "lucide-react";
 
 type Article = {
@@ -31,7 +31,6 @@ type Article = {
   tags: string;
   image: string;
   imageName: string;
-  status: "Draft" | "Ready" | "Needs review";
 };
 
 const categories = [
@@ -56,7 +55,6 @@ const createArticle = (): Article => ({
   tags: "",
   image: "",
   imageName: "",
-  status: "Needs review",
 });
 
 function parseCSV(text: string): string[][] {
@@ -119,6 +117,7 @@ function csvToArticles(text: string): Article[] {
 
   return rows.slice(1).map((row) => {
     const category = categoryCol >= 0 ? row[categoryCol] : "";
+
     return {
       ...createArticle(),
       title: row[titleCol] ?? "",
@@ -138,10 +137,12 @@ export default function AIPostPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [csvLoading, setCsvLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [imageTarget, setImageTarget] = useState<string | null>(null);
   const [showImportHelp, setShowImportHelp] = useState(false);
 
   const csvRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
 
   const counts = useMemo(
@@ -162,16 +163,16 @@ export default function AIPostPage() {
       article.title.toLowerCase().includes(search.toLowerCase()) ||
       article.category.toLowerCase().includes(search.toLowerCase());
 
+    const ready = Boolean(
+      article.title.trim() &&
+        article.content.trim() &&
+        article.excerpt.trim()
+    );
+
     const matchesFilter =
       filter === "All" ||
-      (filter === "Ready" &&
-        article.title.trim() &&
-        article.content.trim() &&
-        article.excerpt.trim()) ||
-      (filter === "Needs review" &&
-        (!article.title.trim() ||
-          !article.content.trim() ||
-          !article.excerpt.trim()));
+      (filter === "Ready" && ready) ||
+      (filter === "Needs review" && !ready);
 
     return matchesSearch && matchesFilter;
   });
@@ -204,17 +205,26 @@ export default function AIPostPage() {
     );
   };
 
+  // CSV import
   const importCSV = async (file?: File) => {
     if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setMessage("Please select a CSV file.");
+      return;
+    }
+
     setCsvLoading(true);
     setMessage("");
 
     try {
       const text = await file.text();
       const imported = csvToArticles(text);
+
       if (!imported.length) {
         throw new Error("No articles found in the CSV file.");
       }
+
       setArticles((current) => [...current, ...imported]);
       setMessage(`${imported.length} articles imported successfully.`);
       setSelected([]);
@@ -228,28 +238,109 @@ export default function AIPostPage() {
     }
   };
 
+  // PDF text extraction
+  const importPDF = async (file?: File) => {
+    if (!file) return;
+
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setMessage("Please select a PDF file.");
+      return;
+    }
+
+    if (file.size > 30 * 1024 * 1024) {
+      setMessage("PDF size must be 30 MB or less.");
+      return;
+    }
+
+    setPdfLoading(true);
+    setMessage("");
+
+    try {
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
+      const pdf = await pdfjs.getDocument({
+        data: new Uint8Array(await file.arrayBuffer()),
+        
+      }).promise;
+
+      const pages: string[] = [];
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+
+        const text = content.items
+          .map((item) => ("str" in item ? item.str : ""))
+          .join(" ");
+
+        pages.push(text);
+      }
+
+      const extractedText = pages
+        .map((text, index) => `Page ${index + 1}\n${text}`)
+        .join("\n\n")
+        .trim();
+
+      if (!extractedText) {
+        throw new Error(
+          "No selectable text found. This PDF may contain scanned images. OCR is required for scanned PDFs."
+        );
+      }
+
+      const article = {
+        ...createArticle(),
+        content: extractedText,
+      };
+
+      setArticles((current) => [...current, article]);
+      setEditing(article.id);
+      setMessage(
+        `Text extracted from ${pdf.numPages} pages. Review the text and split it into individual articles as needed.`
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to extract PDF text."
+      );
+    } finally {
+      setPdfLoading(false);
+      if (pdfRef.current) pdfRef.current.value = "";
+    }
+  };
+
+  // Featured image upload
   const uploadImage = (file?: File) => {
     if (!file || !imageTarget) return;
+
     if (!file.type.startsWith("image/")) {
       setMessage("Please select an image file.");
       return;
     }
+
     if (file.size > 10 * 1024 * 1024) {
       setMessage("Image size must be 10 MB or less.");
       return;
     }
 
     const image = URL.createObjectURL(file);
+
     updateArticle(imageTarget, {
       image,
       imageName: file.name,
     });
+
     setImageTarget(null);
     if (imageRef.current) imageRef.current.value = "";
   };
 
+  // Export selected articles as JSON
   const exportJSON = () => {
     const data = articles.filter((a) => selected.includes(a.id));
+
     if (!data.length) {
       setMessage("Select at least one article to export.");
       return;
@@ -286,31 +377,28 @@ export default function AIPostPage() {
     }
   };
 
-  const isReady = (article: Article) =>
-    Boolean(
-      article.title.trim() &&
-        article.content.trim() &&
-        article.excerpt.trim()
-    );
-
   return (
     <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
+
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
               <span>Super Admin</span>
               <span>/</span>
-              <span className="text-slate-800">Bulk Article Posting</span>
+              <span className="text-slate-800">Bulk Article Post</span>
             </div>
+
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Bulk Article Posting
             </h1>
+
             <p className="mt-1 text-sm text-slate-500">
               Create, organize, review and prepare multiple articles.
             </p>
           </div>
+
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowImportHelp((v) => !v)}
@@ -319,6 +407,7 @@ export default function AIPostPage() {
               <FileSpreadsheet size={17} />
               CSV format
             </button>
+
             <button
               onClick={addArticle}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
@@ -329,7 +418,7 @@ export default function AIPostPage() {
           </div>
         </div>
 
-        {/* Import instructions */}
+        {/* CSV instructions */}
         {showImportHelp && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
             <div className="mb-2 flex items-center justify-between">
@@ -338,14 +427,18 @@ export default function AIPostPage() {
                 <X size={18} />
               </button>
             </div>
+
             Your CSV should have a header row with at least these columns:
+
             <code className="mt-2 block overflow-x-auto rounded-md bg-white p-3 text-xs">
               title,content,excerpt,category,tags
             </code>
+
             <p className="mt-2">
-              The title and content columns are required. The other columns
-              are optional. Use UTF-8 encoding for Tamil content.
+              Title and content are required. Excerpt, category and tags are
+              optional. Use UTF-8 encoding for Tamil content.
             </p>
+
             <button
               onClick={() => {
                 const blob = new Blob(
@@ -354,6 +447,7 @@ export default function AIPostPage() {
                   ],
                   { type: "text/csv;charset=utf-8" }
                 );
+
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
@@ -369,7 +463,7 @@ export default function AIPostPage() {
           </div>
         )}
 
-        {/* Stats */}
+        {/* Statistics */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
@@ -381,7 +475,9 @@ export default function AIPostPage() {
               </div>
             </div>
             <p className="mt-3 text-3xl font-bold">{counts.total}</p>
-            <p className="mt-1 text-xs text-slate-500">Added to this session</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Added to this session
+            </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -415,18 +511,22 @@ export default function AIPostPage() {
           </div>
         </div>
 
-        {/* Import and AI panel */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Import cards */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+          {/* CSV */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
-                <Upload size={22} />
+                <FileSpreadsheet size={22} />
               </div>
+
               <div className="min-w-0 flex-1">
-                <h2 className="font-semibold">Import articles using CSV</h2>
+                <h2 className="font-semibold">Import CSV</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Import multiple articles in one operation.
                 </p>
+
                 <input
                   ref={csvRef}
                   type="file"
@@ -434,29 +534,66 @@ export default function AIPostPage() {
                   className="hidden"
                   onChange={(e) => importCSV(e.target.files?.[0])}
                 />
+
                 <button
                   onClick={() => csvRef.current?.click()}
                   disabled={csvLoading}
                   className="mt-4 inline-flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                 >
-                  <FileSpreadsheet size={17} />
+                  <Upload size={17} />
                   {csvLoading ? "Importing..." : "Choose CSV file"}
                 </button>
               </div>
             </div>
           </div>
 
+          {/* PDF */}
+          <div className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-red-50 p-3 text-red-600">
+                <FileUp size={22} />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold">Upload PDF</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Extract selectable text from a PDF for article editing.
+                </p>
+
+                <input
+                  ref={pdfRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => importPDF(e.target.files?.[0])}
+                />
+
+                <button
+                  onClick={() => pdfRef.current?.click()}
+                  disabled={pdfLoading}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Upload size={17} />
+                  {pdfLoading ? "Extracting text..." : "Choose PDF"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* AI */}
           <div className="rounded-xl border border-violet-200 bg-white p-5 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-violet-50 p-3 text-violet-600">
                 <Sparkles size={22} />
               </div>
+
               <div className="min-w-0 flex-1">
                 <h2 className="font-semibold">AI article assistance</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   AI-assisted writing, SEO metadata and summaries can be
                   connected to your backend.
                 </p>
+
                 <span className="mt-4 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
                   AI API integration required
                 </span>
@@ -475,7 +612,7 @@ export default function AIPostPage() {
           </div>
         )}
 
-        {/* Article list */}
+        {/* Articles */}
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:p-5">
             <div>
@@ -484,6 +621,7 @@ export default function AIPostPage() {
                 Edit and check your articles before exporting.
               </p>
             </div>
+
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={exportJSON}
@@ -493,6 +631,7 @@ export default function AIPostPage() {
                 <Download size={16} />
                 Export selected ({selected.length})
               </button>
+
               <button
                 onClick={() => {
                   setArticles([]);
@@ -509,6 +648,7 @@ export default function AIPostPage() {
             </div>
           </div>
 
+          {/* Search and filter */}
           <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row">
             <div className="relative flex-1">
               <Search
@@ -522,6 +662,7 @@ export default function AIPostPage() {
                 className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
+
             <div className="relative">
               <select
                 value={filter}
@@ -532,6 +673,7 @@ export default function AIPostPage() {
                 <option>Ready</option>
                 <option>Needs review</option>
               </select>
+
               <ChevronDown
                 size={16}
                 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
@@ -544,10 +686,13 @@ export default function AIPostPage() {
               <div className="rounded-full bg-slate-100 p-4 text-slate-400">
                 <FileText size={30} />
               </div>
+
               <h3 className="mt-4 font-semibold">No articles found</h3>
               <p className="mt-1 max-w-sm text-sm text-slate-500">
-                Add an article manually or import a CSV file to get started.
+                Add an article manually or import a CSV or PDF file to get
+                started.
               </p>
+
               <button
                 onClick={addArticle}
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -574,7 +719,11 @@ export default function AIPostPage() {
 
               <div className="divide-y divide-slate-100">
                 {filtered.map((article, index) => {
-                  const ready = isReady(article);
+                  const ready = Boolean(
+                    article.title.trim() &&
+                      article.content.trim() &&
+                      article.excerpt.trim()
+                  );
                   const isEditing = editing === article.id;
 
                   return (
@@ -593,6 +742,7 @@ export default function AIPostPage() {
                             <span className="text-xs font-semibold text-slate-400">
                               ARTICLE {String(index + 1).padStart(2, "0")}
                             </span>
+
                             {ready ? (
                               <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
                                 Ready for review
@@ -680,7 +830,9 @@ export default function AIPostPage() {
                                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                                   >
                                     {categories.map((category) => (
-                                      <option key={category}>{category}</option>
+                                      <option key={category}>
+                                        {category}
+                                      </option>
                                     ))}
                                   </select>
                                 </div>
@@ -706,6 +858,7 @@ export default function AIPostPage() {
                                 <label className="mb-1.5 block text-xs font-semibold text-slate-700">
                                   Featured image
                                 </label>
+
                                 <div className="flex flex-wrap items-center gap-3">
                                   {article.image ? (
                                     <img
@@ -718,6 +871,7 @@ export default function AIPostPage() {
                                       <ImageIcon size={25} />
                                     </div>
                                   )}
+
                                   <div className="flex flex-col gap-1">
                                     <button
                                       onClick={() => {
@@ -729,11 +883,13 @@ export default function AIPostPage() {
                                       <Upload size={15} />
                                       Choose image
                                     </button>
+
                                     {article.imageName && (
                                       <span className="max-w-48 truncate text-xs text-slate-500">
                                         {article.imageName}
                                       </span>
                                     )}
+
                                     {article.image && (
                                       <button
                                         onClick={() =>
@@ -758,6 +914,7 @@ export default function AIPostPage() {
                                 >
                                   Close editor
                                 </button>
+
                                 <button
                                   onClick={() => setEditing(null)}
                                   className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
@@ -773,21 +930,22 @@ export default function AIPostPage() {
                                 <h3 className="break-words font-semibold text-slate-900">
                                   {article.title || "Untitled article"}
                                 </h3>
+
                                 <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                                   {article.excerpt ||
                                     "No excerpt has been added yet."}
                                 </p>
+
                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                   <span>{article.category}</span>
                                   <span>·</span>
                                   <span>
                                     {article.content.trim()
-                                      ? article.content
-                                          .trim()
-                                          .split(/\s+/).length
+                                      ? article.content.trim().split(/\s+/).length
                                       : 0}{" "}
                                     words
                                   </span>
+
                                   {article.image && (
                                     <>
                                       <span>·</span>
@@ -808,6 +966,7 @@ export default function AIPostPage() {
                                 >
                                   <Edit3 size={16} />
                                 </button>
+
                                 <button
                                   onClick={() => deleteArticle(article.id)}
                                   title="Delete article"
@@ -827,11 +986,13 @@ export default function AIPostPage() {
             </>
           )}
 
+          {/* Bottom actions */}
           {articles.length > 0 && (
             <div className="flex flex-col justify-between gap-3 border-t border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:px-5">
               <p className="text-xs text-slate-500">
                 {selected.length} selected · {counts.total} total
               </p>
+
               <button
                 onClick={exportJSON}
                 disabled={selected.length === 0}
@@ -844,6 +1005,7 @@ export default function AIPostPage() {
           )}
         </div>
 
+        {/* Hidden image input */}
         <input
           ref={imageRef}
           type="file"
@@ -854,8 +1016,9 @@ export default function AIPostPage() {
 
         <p className="text-xs leading-5 text-slate-500">
           Articles are currently managed in the browser session. Connect the
-          Django backend to persist drafts, upload images, use AI generation
-          and submit articles for approval.
+          Django backend to permanently save drafts, upload images, use AI
+          generation and submit articles for approval. PDF text extraction
+          does not automatically split articles or extract images.
         </p>
       </div>
     </div>
