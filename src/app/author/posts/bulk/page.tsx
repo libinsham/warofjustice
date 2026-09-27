@@ -60,7 +60,7 @@ type BulkPostDraft = {
   scheduledAt: string;
 };
 
-const POST_COUNTS = [1, 5, 10] as const;
+const POST_COUNTS = [1, 5, 10, 15, 20, 25 ,30 , 35 , 40 , 45, 50, 55 , 60 , 70] as const;
 type PostCount = (typeof POST_COUNTS)[number];
 
 function createEmptyPost(isExpanded = true): BulkPostDraft {
@@ -123,11 +123,11 @@ function PostCard({
 }: PostCardProps) {
   return (
     <Card
-      className={`min-w-0 shrink-0 overflow-hidden transition-all duration-300 ${
-        post.isExpanded
-          ? "w-full sm:w-[270px]"
-          : "w-[68px]"
-      }`}
+    className={`min-w-0 overflow-hidden transition-all duration-300 ${
+  post.isExpanded
+    ? "w-full"
+    : "mx-auto w-4/5"
+}`}
     >
       {/* Card heading remains visible when collapsed */}
       <CardHeader
@@ -876,8 +876,7 @@ export default function BulkPostsPage() {
       )}
 
       {/* Responsive cards: expanded 270px, collapsed 68px */}
-      <div className="flex flex-wrap items-start gap-6">
-        {posts.map((post, index) => (
+<div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">        {posts.map((post, index) => (
           <PostCard
             key={post.localId}
             post={post}
