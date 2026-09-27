@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
@@ -12,7 +13,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,8 +85,475 @@ function createEmptyPost(isExpanded = true): BulkPostDraft {
   };
 }
 
+type PostCardProps = {
+  post: BulkPostDraft;
+  index: number;
+  categories: Category[];
+  isSaving: boolean;
+  canRemove: boolean;
+  onToggle: (localId: string) => void;
+  onRemove: (localId: string) => void;
+  onUpdate: (
+    localId: string,
+    patch: Partial<BulkPostDraft>,
+  ) => void;
+  onImageUpload: (
+    localId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void;
+  onVideoSelect: (
+    localId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void;
+  onClearVideo: (localId: string) => void;
+};
+
+function PostCard({
+  post,
+  index,
+  categories,
+  isSaving,
+  canRemove,
+  onToggle,
+  onRemove,
+  onUpdate,
+  onImageUpload,
+  onVideoSelect,
+  onClearVideo,
+}: PostCardProps) {
+  return (
+    <Card
+      className={`min-w-0 shrink-0 overflow-hidden transition-all duration-300 ${
+        post.isExpanded
+          ? "w-full sm:w-[270px]"
+          : "w-[68px]"
+      }`}
+    >
+      {/* Card heading remains visible when collapsed */}
+      <CardHeader
+        className={`border-b ${
+          post.isExpanded ? "p-4" : "p-2"
+        }`}
+      >
+        <div
+          className={`flex gap-2 ${
+            post.isExpanded
+              ? "items-center"
+              : "flex-col items-start"
+          }`}
+        >
+          <div
+            className={`flex min-w-0 gap-2 ${
+              post.isExpanded
+                ? "flex-1 items-center"
+                : "w-full flex-col items-start"
+            }`}
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => onToggle(post.localId)}
+              disabled={isSaving}
+              aria-label={`${
+                post.isExpanded ? "Collapse" : "Expand"
+              } Post ${index + 1}`}
+              title={
+                post.isExpanded
+                  ? "Collapse post"
+                  : "Expand post"
+              }
+            >
+              {post.isExpanded ? (
+                <Minus className="h-4 w-4" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+            </Button>
+
+            {post.isExpanded && (
+              <div className="min-w-0 flex-1">
+                <CardTitle className="truncate text-base leading-tight">
+                  Post {index + 1}
+                </CardTitle>
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {post.title.trim() || "Untitled post"}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {post.isExpanded && canRemove && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 text-destructive"
+              onClick={() => onRemove(post.localId)}
+              disabled={isSaving}
+              aria-label={`Remove Post ${index + 1}`}
+              title={`Remove Post ${index + 1}`}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Remove</span>
+            </Button>
+          )}
+
+          {!post.isExpanded && (
+            <CardTitle className="w-full break-words text-xs leading-tight">
+              Post {index + 1}
+            </CardTitle>
+          )}
+        </div>
+      </CardHeader>
+
+      {/* Only the body is hidden when a card is collapsed */}
+      {post.isExpanded && (
+        <CardContent className="space-y-6 pt-6">
+          {/* Article title */}
+          <div className="space-y-1.5">
+            <Label htmlFor={`bulk-title-${post.localId}`}>
+              Article Title
+            </Label>
+            <Input
+              id={`bulk-title-${post.localId}`}
+              value={post.title}
+              onChange={(event) =>
+                onUpdate(post.localId, {
+                  title: event.target.value,
+                })
+              }
+              disabled={isSaving}
+            />
+          </div>
+
+          {/* Short summary */}
+          <div className="space-y-1.5">
+            <Label htmlFor={`bulk-summary-${post.localId}`}>
+              Short Summary / Excerpt
+            </Label>
+            <Textarea
+              id={`bulk-summary-${post.localId}`}
+              rows={3}
+              value={post.short_description}
+              onChange={(event) =>
+                onUpdate(post.localId, {
+                  short_description: event.target.value,
+                })
+              }
+              disabled={isSaving}
+            />
+          </div>
+
+          {/* Featured image */}
+          <div className="space-y-4">
+            <Label>Featured Image</Label>
+
+            {post.featured_image_url && (
+              <div className="space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.featured_image_url}
+                  alt={`Post ${index + 1} featured image preview`}
+                  className="h-40 w-full max-w-md rounded-md border object-cover"
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    onUpdate(post.localId, {
+                      featured_image_url: "",
+                      manual_image_url: "",
+                    })
+                  }
+                  disabled={isSaving}
+                >
+                  Remove Image
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label
+                htmlFor={`bulk-image-upload-${post.localId}`}
+                className="text-sm"
+              >
+                Upload Image
+              </Label>
+              <Input
+                id={`bulk-image-upload-${post.localId}`}
+                type="file"
+                accept="image/*"
+                onChange={(event) =>
+                  onImageUpload(post.localId, event)
+                }
+                disabled={isSaving || post.uploadingImage}
+              />
+
+              {post.uploadingImage && (
+                <p className="text-xs text-muted-foreground">
+                  Uploading image to Cloudflare R2...
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">
+                OR
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor={`bulk-image-url-${post.localId}`}
+                className="text-sm"
+              >
+                Paste Image URL
+              </Label>
+              <Input
+                id={`bulk-image-url-${post.localId}`}
+                type="url"
+                placeholder="https://example.com/image.jpg"
+                value={post.manual_image_url}
+                onChange={(event) =>
+                  onUpdate(post.localId, {
+                    manual_image_url: event.target.value,
+                    featured_image_url: event.target.value,
+                    imageError: "",
+                  })
+                }
+                disabled={isSaving}
+              />
+            </div>
+
+            {post.imageError && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                {post.imageError}
+              </div>
+            )}
+          </div>
+
+          {/* Video upload */}
+          <div className="space-y-3">
+            <div>
+              <Label>Video</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optional. Admin will review the attached video
+                and decide whether it should be published to
+                YouTube as an unlisted video after approval.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor={`bulk-video-${post.localId}`}
+                className="text-sm"
+              >
+                Upload Video
+              </Label>
+              <Input
+                id={`bulk-video-${post.localId}`}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
+                onChange={(event) =>
+                  onVideoSelect(post.localId, event)
+                }
+                disabled={isSaving}
+              />
+
+              <p className="text-xs text-muted-foreground">
+                Supported formats: MP4, WebM, MOV.
+              </p>
+
+              {post.videoFileName && (
+                <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Video className="h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {post.videoFileName}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => onClearVideo(post.localId)}
+                    disabled={isSaving}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
+
+              {post.videoError && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                  {post.videoError}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Article content */}
+          <div className="space-y-1.5">
+            <Label>Article Content</Label>
+            <RichTextEditor
+              value={post.content}
+              onChange={(html) =>
+                onUpdate(post.localId, { content: html })
+              }
+              disabled={isSaving}
+              placeholder={`Write Post ${index + 1}...`}
+            />
+          </div>
+
+          {/* Category and SEO */}
+          <div className="grid gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor={`bulk-category-${post.localId}`}>
+                Category
+              </Label>
+              <Select
+                value={
+                  post.category
+                    ? String(post.category)
+                    : undefined
+                }
+                onValueChange={(value) =>
+                  onUpdate(post.localId, {
+                    category: Number(value),
+                  })
+                }
+                disabled={isSaving}
+              >
+                <SelectTrigger
+                  id={`bulk-category-${post.localId}`}
+                >
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={String(category.id)}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor={`bulk-seo-title-${post.localId}`}>
+                SEO Title
+              </Label>
+              <Input
+                id={`bulk-seo-title-${post.localId}`}
+                value={post.seo_title}
+                onChange={(event) =>
+                  onUpdate(post.localId, {
+                    seo_title: event.target.value,
+                  })
+                }
+                disabled={isSaving}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor={`bulk-seo-description-${post.localId}`}
+              >
+                SEO Description
+              </Label>
+              <Textarea
+                id={`bulk-seo-description-${post.localId}`}
+                rows={3}
+                value={post.seo_description}
+                onChange={(event) =>
+                  onUpdate(post.localId, {
+                    seo_description: event.target.value,
+                  })
+                }
+                disabled={isSaving}
+              />
+            </div>
+          </div>
+
+          {/* Publish schedule */}
+          <div className="rounded-md border bg-muted/20 p-4">
+            <div className="flex items-start gap-3">
+              <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold">
+                    Publish Schedule
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Optional. Choose a future date and time
+                    for this post. Admin approval is still
+                    required before publishing.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={post.scheduleEnabled}
+                    onChange={(event) =>
+                      onUpdate(post.localId, {
+                        scheduleEnabled: event.target.checked,
+                        scheduledAt: event.target.checked
+                          ? post.scheduledAt
+                          : "",
+                      })
+                    }
+                    disabled={isSaving}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  Schedule this post
+                </label>
+
+                {post.scheduleEnabled && (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor={`bulk-scheduled-at-${post.localId}`}
+                    >
+                      Publish Date & Time
+                    </Label>
+                    <Input
+                      id={`bulk-scheduled-at-${post.localId}`}
+                      type="datetime-local"
+                      value={post.scheduledAt}
+                      onChange={(event) =>
+                        onUpdate(post.localId, {
+                          scheduledAt: event.target.value,
+                        })
+                      }
+                      disabled={isSaving}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Time is based on the author's
+                      browser/local timezone.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export default function BulkPostsPage() {
   const router = useRouter();
+
   const [count, setCount] = useState<PostCount>(1);
   const [posts, setPosts] = useState<BulkPostDraft[]>([
     createEmptyPost(true),
@@ -124,7 +597,9 @@ export default function BulkPostsPage() {
   ) => {
     setPosts((current) =>
       current.map((post) =>
-        post.localId === localId ? { ...post, ...patch } : post,
+        post.localId === localId
+          ? { ...post, ...patch }
+          : post,
       ),
     );
   };
@@ -144,7 +619,9 @@ export default function BulkPostsPage() {
   const removePost = (localId: string) => {
     if (posts.length <= 1 || isSaving) return;
 
-    setPosts((current) => current.filter((post) => post.localId !== localId));
+    setPosts((current) =>
+      current.filter((post) => post.localId !== localId),
+    );
     setBulkError("");
   };
 
@@ -166,7 +643,9 @@ export default function BulkPostsPage() {
       const media = await mediaApi.uploadImage(file);
 
       if (!media?.url) {
-        throw new Error("Image upload failed. No image URL was returned.");
+        throw new Error(
+          "Image upload failed. No image URL was returned.",
+        );
       }
 
       updatePost(localId, {
@@ -232,7 +711,11 @@ export default function BulkPostsPage() {
     const invalidSchedules: number[] = [];
 
     posts.forEach((post, index) => {
-      if (!post.title.trim() || !post.content.trim() || !post.category) {
+      if (
+        !post.title.trim() ||
+        !post.content.trim() ||
+        !post.category
+      ) {
         missing.push(index + 1);
       }
 
@@ -245,7 +728,11 @@ export default function BulkPostsPage() {
           invalidSchedules.push(index + 1);
         } else {
           const scheduled = new Date(post.scheduledAt);
-          if (Number.isNaN(scheduled.getTime()) || scheduled <= new Date()) {
+
+          if (
+            Number.isNaN(scheduled.getTime()) ||
+            scheduled <= new Date()
+          ) {
             invalidSchedules.push(index + 1);
           }
         }
@@ -330,12 +817,13 @@ export default function BulkPostsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page heading */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Bulk Posts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prepare 1, 5, or 10 articles in a responsive grid. Collapse individual
-            posts to keep their headings visible while reducing their card width.
+            Prepare 1, 5, or 10 articles. Expand or collapse each
+            card independently to arrange your workspace.
           </p>
         </div>
 
@@ -349,16 +837,22 @@ export default function BulkPostsPage() {
         </Button>
       </div>
 
+      {/* Number of posts */}
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div>
-            <Label className="text-sm font-semibold">Number of Posts</Label>
+            <Label className="text-sm font-semibold">
+              Number of Posts
+            </Label>
+
             <div className="mt-3 flex flex-wrap gap-2">
               {POST_COUNTS.map((postCount) => (
                 <Button
                   key={postCount}
                   type="button"
-                  variant={count === postCount ? "default" : "outline"}
+                  variant={
+                    count === postCount ? "default" : "outline"
+                  }
                   onClick={() => updateCount(postCount)}
                   disabled={isSaving}
                 >
@@ -366,6 +860,7 @@ export default function BulkPostsPage() {
                 </Button>
               ))}
             </div>
+
             <p className="mt-2 text-xs text-muted-foreground">
               {filledCount} of {posts.length} posts have a title.
             </p>
@@ -373,33 +868,34 @@ export default function BulkPostsPage() {
         </CardContent>
       </Card>
 
+      {/* Error message */}
       {bulkError && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           {bulkError}
         </div>
       )}
 
-      {/* All posts stay in one responsive grid. At wide desktop sizes,
-          five cards appear per row; collapsed cards remain in their cells. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {posts.map((post) => {
-          const index = posts.findIndex((item) => item.localId === post.localId);
-
-          return renderPostCard({
-            post,
-            index,
-            categories: typedCategories,
-            isSaving,
-            onToggle: togglePostExpanded,
-            onRemove: removePost,
-            onUpdate: updatePost,
-            onImageUpload: handleImageUpload,
-            onVideoSelect: handleVideoSelect,
-            onClearVideo: clearVideo,
-          });
-        })}
+      {/* Responsive cards: expanded 270px, collapsed 68px */}
+      <div className="flex flex-wrap items-start gap-6">
+        {posts.map((post, index) => (
+          <PostCard
+            key={post.localId}
+            post={post}
+            index={index}
+            categories={typedCategories}
+            isSaving={isSaving}
+            canRemove={posts.length > 1}
+            onToggle={togglePostExpanded}
+            onRemove={removePost}
+            onUpdate={updatePost}
+            onImageUpload={handleImageUpload}
+            onVideoSelect={handleVideoSelect}
+            onClearVideo={clearVideo}
+          />
+        ))}
       </div>
 
+      {/* Save actions */}
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:justify-end">
           <Button
@@ -422,396 +918,12 @@ export default function BulkPostsPage() {
       </Card>
 
       <div className="pb-6 text-center text-xs text-muted-foreground">
-        On wide screens, posts appear in five columns. Use − to hide an individual
-        post's fields while keeping its heading visible; use + to expand it again.
-        Collapsed cards occupy 80% of their grid cell. Scheduled publishing is
-        prepared in the frontend and will be enforced by the backend later.
+        Use − to hide an individual post's fields while keeping
+        its heading visible. Use + to expand it again. Cards
+        automatically flow into rows. Scheduled publishing is
+        prepared in the frontend and will be enforced by the
+        backend later.
       </div>
     </div>
   );
 }
-
-type RenderPostCardArgs = {
-  post: BulkPostDraft;
-  index: number;
-  categories: Category[];
-  isSaving: boolean;
-  onToggle: (localId: string) => void;
-  onRemove: (localId: string) => void;
-  onUpdate: (localId: string, patch: Partial<BulkPostDraft>) => void;
-  onImageUpload: (
-    localId: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void;
-  onVideoSelect: (
-    localId: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void;
-  onClearVideo: (localId: string) => void;
-};
-
-function renderPostCard({
-  post,
-  index,
-  categories,
-  isSaving,
-  onToggle,
-  onRemove,
-  onUpdate,
-  onImageUpload,
-  onVideoSelect,
-  onClearVideo,
-}: RenderPostCardArgs) {
-  return (
-    <Card
-      className={`min-w-0 overflow-hidden transition-all duration-300 ${
-        post.isExpanded ? "w-full" : "mx-auto w-4/5"
-      }`}
-    >
-      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => onToggle(post.localId)}
-            disabled={isSaving}
-            aria-label={`${post.isExpanded ? "Collapse" : "Expand"} Post ${index + 1}`}
-            title={post.isExpanded ? "Collapse post" : "Expand post"}
-          >
-            {post.isExpanded ? (
-              <Minus className="h-4 w-4" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-          </Button>
-
-          <div className="min-w-0">
-            <CardTitle className="text-lg">Post {index + 1}</CardTitle>
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {post.title.trim() || "Untitled post"}
-            </p>
-          </div>
-        </div>
-
-        {postsCanBeRemoved && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="shrink-0 text-destructive"
-            onClick={() => onRemove(post.localId)}
-            disabled={isSaving}
-          >
-            <Trash2 className="h-4 w-4" />
-            Remove
-          </Button>
-        )}
-      </CardHeader>
-
-      {post.isExpanded && (
-      <CardContent className="space-y-6 pt-6">
-        <div className="space-y-1.5">
-          <Label htmlFor={`bulk-title-${post.localId}`}>
-            Article Title
-          </Label>
-          <Input
-            id={`bulk-title-${post.localId}`}
-            value={post.title}
-            onChange={(event) =>
-              onUpdate(post.localId, { title: event.target.value })
-            }
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor={`bulk-summary-${post.localId}`}>
-            Short Summary / Excerpt
-          </Label>
-          <Textarea
-            id={`bulk-summary-${post.localId}`}
-            rows={3}
-            value={post.short_description}
-            onChange={(event) =>
-              onUpdate(post.localId, {
-                short_description: event.target.value,
-              })
-            }
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <Label>Featured Image</Label>
-
-          {post.featured_image_url && (
-            <div className="space-y-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.featured_image_url}
-                alt={`Post ${index + 1} featured image preview`}
-                className="h-40 w-full max-w-md rounded-md border object-cover"
-              />
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  onUpdate(post.localId, {
-                    featured_image_url: "",
-                    manual_image_url: "",
-                  })
-                }
-                disabled={isSaving}
-              >
-                Remove Image
-              </Button>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label
-              htmlFor={`bulk-image-upload-${post.localId}`}
-              className="text-sm"
-            >
-              Upload Image
-            </Label>
-            <Input
-              id={`bulk-image-upload-${post.localId}`}
-              type="file"
-              accept="image/*"
-              onChange={(event) => onImageUpload(post.localId, event)}
-              disabled={isSaving || post.uploadingImage}
-            />
-            {post.uploadingImage && (
-              <p className="text-xs text-muted-foreground">
-                Uploading image to Cloudflare R2...
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">OR</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="space-y-2">
-            <Label
-              htmlFor={`bulk-image-url-${post.localId}`}
-              className="text-sm"
-            >
-              Paste Image URL
-            </Label>
-            <Input
-              id={`bulk-image-url-${post.localId}`}
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              value={post.manual_image_url}
-              onChange={(event) =>
-                onUpdate(post.localId, {
-                  manual_image_url: event.target.value,
-                  featured_image_url: event.target.value,
-                  imageError: "",
-                })
-              }
-              disabled={isSaving}
-            />
-          </div>
-
-          {post.imageError && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-              {post.imageError}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <Label>Video</Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Optional. Admin will review the attached video and decide whether
-              it should be published to YouTube as an unlisted video after approval.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label
-              htmlFor={`bulk-video-${post.localId}`}
-              className="text-sm"
-            >
-              Upload Video
-            </Label>
-            <Input
-              id={`bulk-video-${post.localId}`}
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
-              onChange={(event) => onVideoSelect(post.localId, event)}
-              disabled={isSaving}
-            />
-            <p className="text-xs text-muted-foreground">
-              Supported formats: MP4, WebM, MOV.
-            </p>
-
-            {post.videoFileName && (
-              <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 p-3 text-sm">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Video className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{post.videoFileName}</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0"
-                  onClick={() => onClearVideo(post.localId)}
-                  disabled={isSaving}
-                >
-                  Remove
-                </Button>
-              </div>
-            )}
-
-            {post.videoError && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                {post.videoError}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Article Content</Label>
-          <RichTextEditor
-            value={post.content}
-            onChange={(html) => onUpdate(post.localId, { content: html })}
-            disabled={isSaving}
-            placeholder={`Write Post ${index + 1}...`}
-          />
-        </div>
-
-        <div className="grid gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor={`bulk-category-${post.localId}`}>
-              Category
-            </Label>
-            <Select
-              value={post.category ? String(post.category) : undefined}
-              onValueChange={(value) =>
-                onUpdate(post.localId, { category: Number(value) })
-              }
-              disabled={isSaving}
-            >
-              <SelectTrigger id={`bulk-category-${post.localId}`}>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={String(category.id)}
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor={`bulk-seo-title-${post.localId}`}>
-              SEO Title
-            </Label>
-            <Input
-              id={`bulk-seo-title-${post.localId}`}
-              value={post.seo_title}
-              onChange={(event) =>
-                onUpdate(post.localId, { seo_title: event.target.value })
-              }
-              disabled={isSaving}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor={`bulk-seo-description-${post.localId}`}>
-              SEO Description
-            </Label>
-            <Textarea
-              id={`bulk-seo-description-${post.localId}`}
-              rows={3}
-              value={post.seo_description}
-              onChange={(event) =>
-                onUpdate(post.localId, {
-                  seo_description: event.target.value,
-                })
-              }
-              disabled={isSaving}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-md border bg-muted/20 p-4">
-          <div className="flex items-start gap-3">
-            <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1 space-y-3">
-              <div>
-                <p className="text-sm font-semibold">Publish Schedule</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Optional. Choose a future date and time for this post. Admin
-                  approval is still required before publishing.
-                </p>
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={post.scheduleEnabled}
-                  onChange={(event) =>
-                    onUpdate(post.localId, {
-                      scheduleEnabled: event.target.checked,
-                      scheduledAt: event.target.checked
-                        ? post.scheduledAt
-                        : "",
-                    })
-                  }
-                  disabled={isSaving}
-                  className="h-4 w-4 rounded border-input"
-                />
-                Schedule this post
-              </label>
-
-              {post.scheduleEnabled && (
-                <div className="space-y-2">
-                  <Label htmlFor={`bulk-scheduled-at-${post.localId}`}>
-                    Publish Date & Time
-                  </Label>
-                  <Input
-                    id={`bulk-scheduled-at-${post.localId}`}
-                    type="datetime-local"
-                    value={post.scheduledAt}
-                    onChange={(event) =>
-                      onUpdate(post.localId, {
-                        scheduledAt: event.target.value,
-                      })
-                    }
-                    disabled={isSaving}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Time is based on the author's browser/local timezone.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-      )}
-    </Card>
-  );
-}
-
-// Kept outside renderPostCard so the card remains easy to read and the
-// remove button can be enabled/disabled consistently by the parent.
-const postsCanBeRemoved = true;
