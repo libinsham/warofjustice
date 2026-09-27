@@ -291,7 +291,7 @@ function PostCard({
 
               {post.uploadingImage && (
                 <p className="text-xs text-muted-foreground">
-                  Uploading image to Cloudflare R2...
+                  Uploading image Please wait...
                 </p>
               )}
             </div>
@@ -657,7 +657,7 @@ export default function BulkPostsPage() {
         imageError:
           error instanceof Error
             ? error.message
-            : "Image upload to Cloudflare R2 failed.",
+            : "Image upload to website failed.",
       });
     }
   };

@@ -7,10 +7,9 @@ export default function PrivacyPage() {
       <div className="prose prose-neutral mt-6 max-w-none">
         <p>Last updated: replace with your actual publish date.</p>
         <p>
-          Placeholder policy text. Replace with your organization&apos;s real
-          data collection, cookie usage, and third-party sharing practices
-          (including analytics and the Cloudflare/Bunny Stream vendors used
-          by this platform) before launch.
+        
+        Updating soon.....
+
         </p>
       </div>
     </div>

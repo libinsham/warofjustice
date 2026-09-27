@@ -235,12 +235,12 @@ const contentValue = watch("content") ?? "";
 
     } catch (error) {
       console.error(
-        "Cloudflare R2 upload error:",
+        "Image upload error:",
         error
       );
 
       setImageError(
-        "Image upload to Cloudflare R2 failed. You can still paste an external image URL below."
+        "Image upload  failed. You can still paste an external image URL below."
       );
     } finally {
       setUploadingImage(false);
