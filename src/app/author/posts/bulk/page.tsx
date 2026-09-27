@@ -60,7 +60,10 @@ type BulkPostDraft = {
   scheduledAt: string;
 };
 
-const POST_COUNTS = [1, 5, 10, 15, 20, 25 ,30 , 35 , 40 , 45, 50, 55 , 60 , 70] as const;
+const POST_COUNTS = [
+  1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70,
+] as const;
+
 type PostCount = (typeof POST_COUNTS)[number];
 
 function createEmptyPost(isExpanded = true): BulkPostDraft {
@@ -122,14 +125,8 @@ function PostCard({
   onClearVideo,
 }: PostCardProps) {
   return (
-    <Card
-    className={`min-w-0 overflow-hidden transition-all duration-300 ${
-  post.isExpanded
-    ? "w-full"
-    : "mx-auto w-4/5"
-}`}
-    >
-      {/* Card heading remains visible when collapsed */}
+    <Card className="w-full min-w-0 overflow-hidden transition-all duration-300">
+      {/* Header always remains visible */}
       <CardHeader
         className={`border-b ${
           post.isExpanded ? "p-4" : "p-2"
@@ -207,7 +204,7 @@ function PostCard({
         </div>
       </CardHeader>
 
-      {/* Only the body is hidden when a card is collapsed */}
+      {/* Expanded form */}
       {post.isExpanded && (
         <CardContent className="space-y-6 pt-6">
           {/* Article title */}
@@ -822,8 +819,8 @@ export default function BulkPostsPage() {
         <div>
           <h1 className="text-2xl font-bold">Bulk Posts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prepare 1, 5, or 10 articles. Expand or collapse each
-            card independently to arrange your workspace.
+            Prepare articles in batches of up to five per row.
+            Expand or collapse each post independently.
           </p>
         </div>
 
@@ -875,23 +872,53 @@ export default function BulkPostsPage() {
         </div>
       )}
 
-      {/* Responsive cards: expanded 270px, collapsed 68px */}
-<div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">        {posts.map((post, index) => (
-          <PostCard
-            key={post.localId}
-            post={post}
-            index={index}
-            categories={typedCategories}
-            isSaving={isSaving}
-            canRemove={posts.length > 1}
-            onToggle={togglePostExpanded}
-            onRemove={removePost}
-            onUpdate={updatePost}
-            onImageUpload={handleImageUpload}
-            onVideoSelect={handleVideoSelect}
-            onClearVideo={clearVideo}
-          />
-        ))}
+      {/* Posts: five per logical row; expanded cards grow */}
+      <div className="space-y-6">
+        {Array.from(
+          { length: Math.ceil(posts.length / 5) },
+          (_, rowIndex) => {
+            const rowPosts = posts.slice(
+              rowIndex * 5,
+              rowIndex * 5 + 5,
+            );
+
+            return (
+              <div
+                key={`post-row-${rowIndex}`}
+                className="flex w-full flex-wrap items-start gap-6"
+              >
+                {rowPosts.map((post, columnIndex) => {
+                  const index = rowIndex * 5 + columnIndex;
+
+                  return (
+                    <div
+                      key={post.localId}
+                      className={
+                        post.isExpanded
+                          ? "min-w-0 flex-[1_1_270px]"
+                          : "w-[68px] shrink-0"
+                      }
+                    >
+                      <PostCard
+                        post={post}
+                        index={index}
+                        categories={typedCategories}
+                        isSaving={isSaving}
+                        canRemove={posts.length > 1}
+                        onToggle={togglePostExpanded}
+                        onRemove={removePost}
+                        onUpdate={updatePost}
+                        onImageUpload={handleImageUpload}
+                        onVideoSelect={handleVideoSelect}
+                        onClearVideo={clearVideo}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          },
+        )}
       </div>
 
       {/* Save actions */}
@@ -918,8 +945,9 @@ export default function BulkPostsPage() {
 
       <div className="pb-6 text-center text-xs text-muted-foreground">
         Use − to hide an individual post's fields while keeping
-        its heading visible. Use + to expand it again. Cards
-        automatically flow into rows. Scheduled publishing is
+        its heading visible. Use + to expand it again. Expanded
+        cards share the available row space. Each logical row
+        contains up to five posts. Scheduled publishing is
         prepared in the frontend and will be enforced by the
         backend later.
       </div>
