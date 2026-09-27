@@ -326,17 +326,10 @@ const contentValue = watch("content") ?? "";
        * The admin will decide later whether the approved
        * video should be published to YouTube as unlisted.
        */
-      const videoUploader = (mediaApi as typeof mediaApi & {
-        uploadVideo?: (file: File) => Promise<{ url: string }>;
-      }).uploadVideo;
-
-      if (typeof videoUploader !== "function") {
-        throw new Error(
-          "Video upload is not configured yet. The backend R2 video upload API must be added."
-        );
-      }
-
-      const media = await videoUploader(file);
+      const media = await mediaApi.uploadVideo(
+        file,
+        watch("title") ?? "",
+      );
 
       if (!media?.url) {
         throw new Error(

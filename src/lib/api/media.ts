@@ -1,6 +1,6 @@
 
 import { apiClient } from "./client";
-import type { Media, Paginated, Video } from "@/types";
+import type { Media, Paginated } from "@/types";
 
 interface ImagePresignResponse {
   upload_url: string;
@@ -45,9 +45,7 @@ const ALLOWED_VIDEO_TYPES = [
 const MAX_VIDEO_SIZE_BYTES = 5 * 1024 * 1024 * 1024;
 
 export const mediaApi = {
-  // ==========================================
   // IMAGE UPLOAD TO CLOUDFLARE R2
-  // ==========================================
 
   async uploadImage(file: File): Promise<Media> {
     const { data: presign } =
@@ -55,34 +53,22 @@ export const mediaApi = {
         "/dashboard/media/presign/",
         {
           file_name: file.name,
-          content_type:
-            file.type || "application/octet-stream",
+          content_type: file.type || "application/octet-stream",
           size_bytes: file.size,
         },
       );
 
-    if (
-      !presign?.upload_url ||
-      !presign?.key ||
-      !presign?.public_url
-    ) {
-      throw new Error(
-        "Image upload could not be initialized.",
-      );
+    if (!presign?.upload_url || !presign?.key || !presign?.public_url) {
+      throw new Error("Image upload could not be initialized.");
     }
 
-    // Upload the image directly to Cloudflare R2.
-    const uploadResponse = await fetch(
-      presign.upload_url,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type":
-            file.type || "application/octet-stream",
-        },
-        body: file,
+    const uploadResponse = await fetch(presign.upload_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
       },
-    );
+      body: file,
+    });
 
     if (!uploadResponse.ok) {
       throw new Error(
@@ -90,23 +76,18 @@ export const mediaApi = {
       );
     }
 
-    // Confirm the upload with Django.
-    const { data: confirmed } =
-      await apiClient.post<Media>(
-        "/dashboard/media/confirm/",
-        {
-          key: presign.key,
-          file_name: file.name,
-          mime_type:
-            file.type || "application/octet-stream",
-          size_bytes: file.size,
-        },
-      );
+    const { data: confirmed } = await apiClient.post<Media>(
+      "/dashboard/media/confirm/",
+      {
+        key: presign.key,
+        file_name: file.name,
+        mime_type: file.type || "application/octet-stream",
+        size_bytes: file.size,
+      },
+    );
 
     if (!confirmed) {
-      throw new Error(
-        "Image upload confirmation failed.",
-      );
+      throw new Error("Image upload confirmation failed.");
     }
 
     return {
@@ -115,9 +96,7 @@ export const mediaApi = {
     };
   },
 
-  // ==========================================
   // VIDEO UPLOAD TO CLOUDFLARE R2
-  // ==========================================
 
   async uploadVideo(
     file: File,
@@ -129,21 +108,20 @@ export const mediaApi = {
       );
     }
 
-    if (
-      file.size < 1 ||
-      file.size > MAX_VIDEO_SIZE_BYTES
-    ) {
+    if (file.size < 1 || file.size > MAX_VIDEO_SIZE_BYTES) {
       throw new Error(
         "Video size must be greater than 0 and no larger than 5 GiB.",
       );
     }
 
-    // Step 1: Ask Django for a temporary R2 upload URL.
+    const videoTitle = title.trim() || file.name;
+
+    // Step 1: Request a temporary R2 upload URL.
     const { data: presign } =
       await apiClient.post<VideoPresignResponse>(
-        "/videos/presign/",
+        "/dashboard/videos/presign/",
         {
-          title: title.trim() || file.name,
+          title: videoTitle,
           file_name: file.name,
           content_type: file.type,
           size_bytes: file.size,
@@ -151,22 +129,17 @@ export const mediaApi = {
       );
 
     if (!presign?.upload_url || !presign?.key) {
-      throw new Error(
-        "Video upload could not be initialized.",
-      );
+      throw new Error("Video upload could not be initialized.");
     }
 
     // Step 2: Upload the original video directly to R2.
-    const uploadResponse = await fetch(
-      presign.upload_url,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
+    const uploadResponse = await fetch(presign.upload_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
       },
-    );
+      body: file,
+    });
 
     if (!uploadResponse.ok) {
       throw new Error(
@@ -174,18 +147,17 @@ export const mediaApi = {
       );
     }
 
-    // Step 3: Confirm the uploaded video with Django.
-    const { data: video } =
-      await apiClient.post<R2Video>(
-        "/videos/confirm/",
-        {
-          key: presign.key,
-          title: title.trim() || file.name,
-          file_name: file.name,
-          content_type: file.type,
-          size_bytes: file.size,
-        },
-      );
+    // Step 3: Confirm the upload with Django.
+    const { data: video } = await apiClient.post<R2Video>(
+      "/dashboard/videos/confirm/",
+      {
+        key: presign.key,
+        title: videoTitle,
+        file_name: file.name,
+        content_type: file.type,
+        size_bytes: file.size,
+      },
+    );
 
     if (!video?.id || !video?.url) {
       throw new Error(
@@ -196,83 +168,59 @@ export const mediaApi = {
     return video;
   },
 
-  // ==========================================
   // MY VIDEOS
-  // ==========================================
 
-  async listMyVideos(): Promise<Paginated<Video>> {
-    const { data } =
-      await apiClient.get<Paginated<Video>>(
-        "/videos/",
-      );
+  async listMyVideos(): Promise<Paginated<R2Video>> {
+    const { data } = await apiClient.get<Paginated<R2Video>>(
+      "/dashboard/videos/",
+    );
 
     return data;
   },
 
-  // ==========================================
   // ADMIN VIDEO DOWNLOAD
-  // ==========================================
 
-  async getVideoDownloadUrl(
-    id: number,
-  ): Promise<string> {
-    const { data } =
-      await apiClient.get<VideoDownloadResponse>(
-        `/dashboard/videos/${id}/download/`,
-      );
+  async getVideoDownloadUrl(id: number): Promise<string> {
+    const { data } = await apiClient.get<VideoDownloadResponse>(
+      `/admin/videos/${id}/download/`,
+    );
 
     if (!data?.download_url) {
-      throw new Error(
-        "No video download URL was returned.",
-      );
+      throw new Error("No video download URL was returned.");
     }
 
     return data.download_url;
   },
 
-  // ==========================================
   // MY MEDIA
-  // ==========================================
 
-  async listMine(
-    page?: number,
-  ): Promise<Paginated<Media>> {
-    const { data } =
-      await apiClient.get<Paginated<Media>>(
-        "/dashboard/media/",
-        {
-          params: page ? { page } : undefined,
-        },
-      );
+  async listMine(page?: number): Promise<Paginated<Media>> {
+    const { data } = await apiClient.get<Paginated<Media>>(
+      "/dashboard/media/",
+      {
+        params: page ? { page } : undefined,
+      },
+    );
 
     return data;
   },
 
-  // ==========================================
   // ALL MEDIA
-  // ==========================================
 
-  async listAll(
-    page?: number,
-  ): Promise<Paginated<Media>> {
-    const { data } =
-      await apiClient.get<Paginated<Media>>(
-        "/dashboard/media/",
-        {
-          params: page ? { page } : undefined,
-        },
-      );
+  async listAll(page?: number): Promise<Paginated<Media>> {
+    const { data } = await apiClient.get<Paginated<Media>>(
+      "/dashboard/media/",
+      {
+        params: page ? { page } : undefined,
+      },
+    );
 
     return data;
   },
 
-  // ==========================================
   // DELETE MEDIA
-  // ==========================================
 
   async remove(id: number): Promise<void> {
-    await apiClient.delete(
-      `/dashboard/media/${id}/`,
-    );
+    await apiClient.delete(`/dashboard/media/${id}/`);
   },
 };
