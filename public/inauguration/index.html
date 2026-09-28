@@ -44,13 +44,7 @@
 
       font-family: Arial, sans-serif;
 
-      background:
-        radial-gradient(
-          circle at center,
-          #a00000 0%,
-          #720000 45%,
-          #360000 100%
-        );
+      background: transparent;
     }
 
 
@@ -62,17 +56,11 @@
       position: relative;
 
       width: 100%;
-      min-height: 100vh;
+      min-height: auto;
 
       overflow: hidden;
 
-      background:
-        radial-gradient(
-          circle at center,
-          #a00000 0%,
-          #720000 45%,
-          #360000 100%
-        );
+      background: transparent;
     }
 
 
@@ -82,25 +70,7 @@
       position: absolute;
       inset: 0;
 
-      background:
-
-        radial-gradient(
-          circle at 50% 50%,
-          rgba(255, 180, 0, 0.12),
-          transparent 55%
-        ),
-
-        radial-gradient(
-          circle at 10% 10%,
-          rgba(255, 215, 0, 0.08),
-          transparent 30%
-        ),
-
-        radial-gradient(
-          circle at 90% 80%,
-          rgba(255, 100, 0, 0.08),
-          transparent 30%
-        );
+      background: none;
 
       pointer-events: none;
 
@@ -118,13 +88,13 @@
       z-index: 5;
 
       width: 100%;
-      min-height: 100vh;
+      min-height: auto;
 
       display: flex;
       align-items: center;
       justify-content: center;
 
-      padding: 40px;
+      padding: 24px 20px 12px;
     }
 
 
@@ -420,15 +390,9 @@
 
       width: 100%;
 
-      padding: 40px 20px 50px;
+      padding: 28px 20px 40px;
 
-      background:
-        linear-gradient(
-          135deg,
-          #f7f7f7 0%,
-          #ececec 50%,
-          #ffffff 100%
-        );
+      background: transparent;
     }
 
 
@@ -748,11 +712,8 @@
     @media (max-width: 600px) {
 
       .hero {
-        min-height: 100svh;
-
-        padding: 15px;
+        padding: 15px 15px 8px;
       }
-
 
       .banner {
         width: 95vw;
@@ -773,9 +734,8 @@
 
 
       .follow-section {
-        padding: 30px 15px;
+        padding: 15px 15px 30px;
       }
-
 
       .follow-heading {
         margin-bottom: 22px;
@@ -1668,7 +1628,6 @@
       setTimeout(
 
         createGlitter,
-
         Math.random() * 4000
 
       );

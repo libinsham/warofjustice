@@ -15,10 +15,8 @@ export const metadata = {
     "Terms and conditions for using War of Justice and applying to join as a Reporter, Cameraman or Writer.",
 };
 
-// Add the genuine authorised QR image path when available.
-// Example: "/images/official-payment-qr.png"
-const PAYMENT_QR_IMAGE: string | null =
-  "/barcode.jpeg";
+// Official payment QR code in the public folder.
+const PAYMENT_QR_IMAGE = "/barcode.jpeg";
 
 type Section = {
   number: string;
@@ -36,7 +34,7 @@ function TermSection({
   return (
     <section
       aria-labelledby={`terms-${number}`}
-      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6 ${className}`}
     >
       <div className="flex items-start gap-3">
         <span
@@ -45,6 +43,7 @@ function TermSection({
         >
           {number}
         </span>
+
         <h2
           id={`terms-${number}`}
           className="pt-1 text-base font-bold tracking-tight text-slate-900 sm:text-lg"
@@ -206,7 +205,8 @@ const terms: Section[] = [
   {
     number: "13",
     title: "Registration and Joining Fee",
-    className: "md:col-span-2",
+    className:
+      "md:col-span-2 md:w-full md:max-w-5xl md:justify-self-center",
     content: (
       <div className="space-y-4">
         <p>
@@ -218,19 +218,25 @@ const terms: Section[] = [
           </strong>.
         </p>
 
-        <ul className="grid gap-2 rounded-xl bg-slate-50 p-4 sm:grid-cols-3">
-          {["Reporter", "Cameraman", "Writer"].map((role) => (
-            <li
-              key={role}
-              className="flex items-center justify-between gap-3 text-sm"
-            >
-              <span>{role}</span>
-              <strong className="font-bold text-slate-900">
-                ₹10,000
-              </strong>
-            </li>
-          ))}
-        </ul>
+        {/* Aligned role and fee columns */}
+       <div className="mx-auto w-full rounded-xl bg-slate-50 p-4 sm:p-5 md:w-1/2">
+          <div className="space-y-3">
+            {["Reporter", "Cameraman", "Writer"].map((role) => (
+              <div
+                key={role}
+                className="grid grid-cols-[1fr_120px] items-center gap-4 border-b border-slate-200 pb-3 last:border-0 last:pb-0"
+              >
+                <span className="text-sm font-medium text-slate-700">
+                  {role}
+                </span>
+
+                <strong className="text-right text-sm font-bold tabular-nums text-slate-900">
+                  ₹10,000
+                </strong>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <p>
           The joining fee is applicable separately to each
@@ -352,7 +358,7 @@ export default function TermsPage() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-        {/* All 13 legal sections appear before fees and payment */}
+        {/* All legal sections appear before fees and payment */}
         <section aria-label="Terms and conditions">
           <div className="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -366,7 +372,7 @@ export default function TermsPage() {
             </div>
 
             <p className="text-sm text-slate-500">
-             
+              13 sections
             </p>
           </div>
 
@@ -490,35 +496,14 @@ export default function TermsPage() {
           <div className="mx-auto mt-8 grid max-w-5xl grid-cols-1 items-start gap-6 lg:grid-cols-2">
             {/* QR code */}
             <div className="flex flex-col items-center rounded-xl border border-dashed border-blue-200 bg-blue-50/50 p-5 text-center sm:p-7">
-              {PAYMENT_QR_IMAGE ? (
-                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={PAYMENT_QR_IMAGE}
-                    alt="Official War of Justice payment QR code"
-                    className="h-56 w-56 object-contain sm:h-64 sm:w-64"
-                  />
-                </div>
-              ) : (
-                <div
-                  role="status"
-                  className="flex min-h-64 w-full max-w-sm flex-col items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-8"
-                >
-                  <QrCode
-                    aria-hidden="true"
-                    className="h-10 w-10 text-slate-300"
-                  />
-
-                  <p className="mt-3 text-sm font-semibold text-slate-800">
-                    Official payment QR code not provided
-                  </p>
-
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    The authorised QR code will appear here
-                    once it has been supplied.
-                  </p>
-                </div>
-              )}
+              <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={PAYMENT_QR_IMAGE}
+                  alt="War of Justice payment QR code"
+                  className="h-56 w-56 object-contain sm:h-64 sm:w-64"
+                />
+              </div>
 
               <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
                 Please verify the role and joining fee before
@@ -537,8 +522,9 @@ export default function TermsPage() {
                   <h3 className="text-base font-bold text-slate-900">
                     Bank Transfer Details
                   </h3>
+
                   <p className="mt-0.5 text-xs text-slate-500">
-                    Authorised bank account
+                    Marwann Charitable Trust
                   </p>
                 </div>
               </div>
