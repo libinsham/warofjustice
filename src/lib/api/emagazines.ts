@@ -1,13 +1,18 @@
+
 import { TokenStore } from "@/lib/token-storage";
 import type { Emagazine } from "@/types/emagazine";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://api.warofjustice.news/api/v1"
-).replace(/\/$/, "");
+).replace(/\/+$/, "");
+
+/* =========================================================
+   AUTH HEADERS
+========================================================= */
 
 function getAuthHeaders(
-  extra: Record<string, string> = {}
+  extra: Record<string, string> = {},
 ): Record<string, string> {
   const token = TokenStore.getAccess();
 
@@ -23,12 +28,21 @@ function getAuthHeaders(
   return headers;
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
-  const contentType = response.headers.get("content-type") || "";
+/* =========================================================
+   RESPONSE HANDLER
+========================================================= */
+
+async function handleResponse<T>(
+  response: Response,
+): Promise<T> {
+  const contentType =
+    response.headers.get("content-type") || "";
 
   let data: unknown;
 
-  if (contentType.includes("application/json")) {
+  if (response.status === 204) {
+    data = undefined;
+  } else if (contentType.includes("application/json")) {
     data = await response.json();
   } else {
     data = await response.text();
@@ -37,17 +51,40 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `Request failed with status ${response.status}`;
 
-    if (typeof data === "string" && data) {
+    if (typeof data === "string" && data.trim()) {
       message = data;
-    }
-
-    if (
+    } else if (
       typeof data === "object" &&
-      data !== null &&
-      "detail" in data &&
-      typeof (data as { detail?: unknown }).detail === "string"
+      data !== null
     ) {
-      message = (data as { detail: string }).detail;
+      const errorData = data as Record<string, unknown>;
+
+      for (const key of [
+        "detail",
+        "message",
+        "error",
+      ]) {
+        const value = errorData[key];
+
+        if (typeof value === "string" && value.trim()) {
+          message = value;
+          break;
+        }
+      }
+
+      if (message.startsWith("Request failed")) {
+        const firstError = Object.values(errorData).find(
+          (value) =>
+            typeof value === "string" ||
+            (Array.isArray(value) && value.length > 0),
+        );
+
+        if (typeof firstError === "string") {
+          message = firstError;
+        } else if (Array.isArray(firstError)) {
+          message = String(firstError[0]);
+        }
+      }
     }
 
     throw new Error(message);
@@ -56,62 +93,135 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
+/* =========================================================
+   GET ALL E-MAGAZINES
+========================================================= */
+
 export async function getEmagazines(): Promise<Emagazine[]> {
-  const response = await fetch(`${API_BASE_URL}/emagazines/`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-    cache: "no-store",
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/emagazines/`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+      cache: "no-store",
+    },
+  );
 
   return handleResponse<Emagazine[]>(response);
 }
 
-export async function getEmagazine(id: number): Promise<Emagazine> {
-  const response = await fetch(`${API_BASE_URL}/emagazines/${id}/`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-    cache: "no-store",
-  });
+/* =========================================================
+   GET SINGLE E-MAGAZINE
+========================================================= */
+
+export async function getEmagazine(
+  id: number,
+): Promise<Emagazine> {
+  const response = await fetch(
+    `${API_BASE_URL}/emagazines/${id}/`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+      cache: "no-store",
+    },
+  );
 
   return handleResponse<Emagazine>(response);
 }
+
+/* =========================================================
+   CREATE E-MAGAZINE
+========================================================= */
 
 export async function createEmagazine(
-  formData: FormData
+  formData: FormData,
 ): Promise<Emagazine> {
-  const response = await fetch(`${API_BASE_URL}/emagazines/`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: formData,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/emagazines/`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: formData,
+    },
+  );
 
   return handleResponse<Emagazine>(response);
 }
+
+/* =========================================================
+   UPDATE E-MAGAZINE
+   PATCH /api/v1/emagazines/{id}/
+
+   Supports:
+   - Title
+   - Issue number
+   - Publication date
+   - Description
+   - Status
+   - Replacement featured image
+   - Replacement PDF
+
+   Existing files are retained when omitted from FormData.
+========================================================= */
+
+export async function updateEmagazine(
+  id: number,
+  formData: FormData,
+): Promise<Emagazine> {
+  const response = await fetch(
+    `${API_BASE_URL}/emagazines/${id}/`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: formData,
+    },
+  );
+
+  return handleResponse<Emagazine>(response);
+}
+
+/* =========================================================
+   UPDATE E-MAGAZINE STATUS
+   PATCH /api/v1/emagazines/{id}/
+========================================================= */
 
 export async function updateEmagazineStatus(
   id: number,
-  status: "draft" | "published"
+  status: "draft" | "published",
 ): Promise<Emagazine> {
-  const response = await fetch(`${API_BASE_URL}/emagazines/${id}/`, {
-    method: "PATCH",
-    headers: getAuthHeaders({
-      "Content-Type": "application/json",
-    }),
-    body: JSON.stringify({
-      status,
-    }),
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/emagazines/${id}/`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({
+        status,
+      }),
+    },
+  );
 
   return handleResponse<Emagazine>(response);
 }
 
-export async function deleteEmagazine(id: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/emagazines/${id}/`, {
-    method: "DELETE",
-    headers: getAuthHeaders(),
-  });
+/* =========================================================
+   DELETE E-MAGAZINE
+   DELETE /api/v1/emagazines/{id}/
+========================================================= */
+
+export async function deleteEmagazine(
+  id: number,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/emagazines/${id}/`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
-    await handleResponse(response);
+    await handleResponse<void>(response);
   }
 }

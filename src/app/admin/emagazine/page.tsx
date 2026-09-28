@@ -1,6 +1,12 @@
+
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useState,
+} from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -19,17 +25,26 @@ import {
   createEmagazine,
   deleteEmagazine,
   getEmagazines,
+  updateEmagazine,
   updateEmagazineStatus,
 } from "@/lib/api/emagazines";
 
 import type { Emagazine } from "@/types/emagazine";
 
-const INITIAL_FORM = {
+type MagazineForm = {
+  title: string;
+  issue_number: string;
+  publication_date: string;
+  description: string;
+  status: "draft" | "published";
+};
+
+const INITIAL_FORM: MagazineForm = {
   title: "",
   issue_number: "",
   publication_date: "",
   description: "",
-  status: "draft" as "draft" | "published",
+  status: "draft",
 };
 
 export default function AdminEmagazinePage() {
@@ -38,14 +53,19 @@ export default function AdminEmagazinePage() {
   const [saving, setSaving] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [form, setForm] = useState(INITIAL_FORM);
-
+  const [form, setForm] = useState<MagazineForm>(INITIAL_FORM);
   const [featuredImage, setFeaturedImage] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const editingMagazine =
+    editingId === null
+      ? null
+      : magazines.find((magazine) => magazine.id === editingId) ?? null;
 
   async function loadMagazines() {
     try {
@@ -69,8 +89,56 @@ export default function AdminEmagazinePage() {
     loadMagazines();
   }, []);
 
+  function resetForm() {
+    setForm(INITIAL_FORM);
+    setFeaturedImage(null);
+    setPdfFile(null);
+    setEditingId(null);
+  }
+
+  function openCreateForm() {
+    resetForm();
+    setError("");
+    setSuccess("");
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    resetForm();
+    setError("");
+    setShowForm(false);
+  }
+
+  function handleEdit(magazine: Emagazine) {
+    setEditingId(magazine.id);
+
+    setForm({
+      title: magazine.title ?? "",
+      issue_number: magazine.issue_number ?? "",
+      publication_date: magazine.publication_date
+        ? magazine.publication_date.slice(0, 10)
+        : "",
+      description: magazine.description ?? "",
+      status:
+        magazine.status === "published" ? "published" : "draft",
+    });
+
+    setFeaturedImage(null);
+    setPdfFile(null);
+    setError("");
+    setSuccess("");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
   function handleInputChange(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) {
     const { name, value } = e.target;
 
@@ -106,7 +174,10 @@ export default function AdminEmagazinePage() {
       return;
     }
 
-    if (file.type !== "application/pdf") {
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
       setError("Please select a PDF file.");
       e.target.value = "";
       return;
@@ -132,12 +203,14 @@ export default function AdminEmagazinePage() {
       return;
     }
 
-    if (!featuredImage) {
+    // On creation, both files are required.
+    // During editing, both files can be left unchanged.
+    if (editingId === null && !featuredImage) {
       setError("Featured image / cover image is required.");
       return;
     }
 
-    if (!pdfFile) {
+    if (editingId === null && !pdfFile) {
       setError("PDF file is required.");
       return;
     }
@@ -153,16 +226,25 @@ export default function AdminEmagazinePage() {
       formData.append("description", form.description.trim());
       formData.append("status", form.status);
 
-      formData.append("featured_image", featuredImage);
-      formData.append("pdf_file", pdfFile);
+      // Only send replacement files when selected.
+      // Omitting these fields keeps the existing files.
+      if (featuredImage) {
+        formData.append("featured_image", featuredImage);
+      }
 
-      await createEmagazine(formData);
+      if (pdfFile) {
+        formData.append("pdf_file", pdfFile);
+      }
 
-      setSuccess("e-Magazine created successfully.");
+      if (editingId !== null) {
+        await updateEmagazine(editingId, formData);
+        setSuccess("E-Magazine updated successfully.");
+      } else {
+        await createEmagazine(formData);
+        setSuccess("E-Magazine created successfully.");
+      }
 
-      setForm(INITIAL_FORM);
-      setFeaturedImage(null);
-      setPdfFile(null);
+      resetForm();
       setShowForm(false);
 
       await loadMagazines();
@@ -170,7 +252,9 @@ export default function AdminEmagazinePage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to create e-Magazine."
+          : editingId !== null
+            ? "Unable to update e-Magazine."
+            : "Unable to create e-Magazine."
       );
     } finally {
       setSaving(false);
@@ -216,8 +300,11 @@ export default function AdminEmagazinePage() {
 
       await deleteEmagazine(magazine.id);
 
-      setSuccess("e-Magazine deleted successfully.");
+      if (editingId === magazine.id) {
+        closeForm();
+      }
 
+      setSuccess("E-Magazine deleted successfully.");
       await loadMagazines();
     } catch (err) {
       setError(
@@ -254,11 +341,14 @@ export default function AdminEmagazinePage() {
           <button
             type="button"
             onClick={() => {
-              setShowForm((prev) => !prev);
-              setError("");
-              setSuccess("");
+              if (showForm) {
+                closeForm();
+              } else {
+                openCreateForm();
+              }
             }}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            disabled={saving}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
           >
             {showForm ? (
               <>
@@ -276,30 +366,39 @@ export default function AdminEmagazinePage() {
 
         {/* Alerts */}
         {error && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div
+            role="alert"
+            className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+          >
             <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          <div
+            role="status"
+            className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700"
+          >
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
-        {/* Create Form */}
+        {/* Create / Edit Form */}
         {showForm && (
           <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-6">
               <h2 className="text-lg font-bold text-slate-900">
-                Upload New E-Magazine
+                {editingId !== null
+                  ? "Edit E-Magazine"
+                  : "Upload New E-Magazine"}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Upload the cover image and PDF, then publish it for
-                active subscribers.
+                {editingId !== null
+                  ? "Update the magazine details. Existing files will be kept unless you select replacements."
+                  : "Upload the cover image and PDF, then publish it for active subscribers."}
               </p>
             </div>
 
@@ -307,62 +406,82 @@ export default function AdminEmagazinePage() {
               <div className="grid gap-6 md:grid-cols-2">
                 {/* Title */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label
+                    htmlFor="magazine-title"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
                     Magazine Title
                   </label>
 
                   <input
+                    id="magazine-title"
                     type="text"
                     name="title"
                     value={form.title}
                     onChange={handleInputChange}
                     placeholder="Example: War of Justice Monthly"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                    disabled={saving}
+                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                   />
                 </div>
 
                 {/* Issue Number */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label
+                    htmlFor="magazine-issue"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
                     Issue Number
                   </label>
 
                   <input
+                    id="magazine-issue"
                     type="text"
                     name="issue_number"
                     value={form.issue_number}
                     onChange={handleInputChange}
                     placeholder="Example: Issue 05"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                    disabled={saving}
+                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                   />
                 </div>
 
                 {/* Date */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label
+                    htmlFor="magazine-date"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
                     Publication Date
                   </label>
 
                   <input
+                    id="magazine-date"
                     type="date"
                     name="publication_date"
                     value={form.publication_date}
                     onChange={handleInputChange}
-                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                    disabled={saving}
+                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                   />
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label
+                    htmlFor="magazine-status"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
                     Status
                   </label>
 
                   <select
+                    id="magazine-status"
                     name="status"
                     value={form.status}
                     onChange={handleInputChange}
-                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                    disabled={saving}
+                    className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
@@ -372,17 +491,22 @@ export default function AdminEmagazinePage() {
 
               {/* Description */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label
+                  htmlFor="magazine-description"
+                  className="mb-2 block text-sm font-semibold text-slate-700"
+                >
                   Description
                 </label>
 
                 <textarea
+                  id="magazine-description"
                   name="description"
                   value={form.description}
                   onChange={handleInputChange}
                   rows={5}
                   placeholder="Write a short description about this magazine..."
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  disabled={saving}
+                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                 />
               </div>
 
@@ -393,13 +517,30 @@ export default function AdminEmagazinePage() {
                     Featured Image / Cover
                   </label>
 
+                  {editingMagazine?.featured_image_url && (
+                    <div className="mb-3 space-y-2">
+                      <p className="text-xs font-medium text-slate-500">
+                        Current cover
+                      </p>
+
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={editingMagazine.featured_image_url}
+                        alt="Current magazine cover"
+                        className="h-40 w-full rounded-lg border border-slate-200 object-cover"
+                      />
+                    </div>
+                  )}
+
                   <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-slate-500">
                     <ImageIcon className="mb-3 h-8 w-8 text-slate-400" />
 
                     <span className="text-sm font-semibold text-slate-700">
                       {featuredImage
                         ? featuredImage.name
-                        : "Choose cover image"}
+                        : editingId !== null
+                          ? "Choose replacement cover"
+                          : "Choose cover image"}
                     </span>
 
                     <span className="mt-1 text-xs text-slate-500">
@@ -410,6 +551,7 @@ export default function AdminEmagazinePage() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
+                      disabled={saving}
                       className="hidden"
                     />
                   </label>
@@ -421,11 +563,33 @@ export default function AdminEmagazinePage() {
                     Magazine PDF
                   </label>
 
+                  {editingMagazine?.pdf_url && (
+                    <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="mb-2 text-xs font-medium text-slate-500">
+                        Current PDF
+                      </p>
+
+                      <a
+                        href={editingMagazine.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline"
+                      >
+                        <FileText className="h-4 w-4" />
+                        View current PDF
+                      </a>
+                    </div>
+                  )}
+
                   <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-slate-500">
                     <FileText className="mb-3 h-8 w-8 text-slate-400" />
 
                     <span className="text-sm font-semibold text-slate-700">
-                      {pdfFile ? pdfFile.name : "Choose PDF file"}
+                      {pdfFile
+                        ? pdfFile.name
+                        : editingId !== null
+                          ? "Choose replacement PDF"
+                          : "Choose PDF file"}
                     </span>
 
                     <span className="mt-1 text-xs text-slate-500">
@@ -436,17 +600,20 @@ export default function AdminEmagazinePage() {
                       type="file"
                       accept="application/pdf,.pdf"
                       onChange={handlePdfChange}
+                      disabled={saving}
                       className="hidden"
                     />
                   </label>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-200 pt-6">
+              {/* Form actions */}
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
-                  className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  onClick={closeForm}
+                  disabled={saving}
+                  className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -454,12 +621,19 @@ export default function AdminEmagazinePage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Uploading...
+                      {editingId !== null
+                        ? "Updating..."
+                        : "Uploading..."}
+                    </>
+                  ) : editingId !== null ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Update Magazine
                     </>
                   ) : (
                     <>
@@ -473,7 +647,7 @@ export default function AdminEmagazinePage() {
           </div>
         )}
 
-        {/* Magazine List */}
+        {/* Magazine Library */}
         <div>
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -501,7 +675,7 @@ export default function AdminEmagazinePage() {
               </h3>
 
               <p className="mt-1 text-sm text-slate-500">
-                Click “Add E-Magazine” to upload your first issue.
+                Click "Add E-Magazine" to upload your first issue.
               </p>
             </div>
           ) : (
@@ -509,10 +683,11 @@ export default function AdminEmagazinePage() {
               {magazines.map((magazine) => (
                 <article
                   key={magazine.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
                 >
                   <div className="aspect-[16/10] overflow-hidden bg-slate-100">
                     {magazine.featured_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={magazine.featured_image_url}
                         alt={magazine.title}
@@ -568,14 +743,26 @@ export default function AdminEmagazinePage() {
                       </p>
                     )}
 
-                    <div className="mt-5 flex flex-wrap gap-2">
+                    <div className="mt-5 flex flex-wrap items-center gap-2">
+                      {/* Edit */}
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(magazine)}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                      </button>
+
+                      {/* Draft / Publish */}
                       {magazine.status === "published" ? (
                         <button
                           type="button"
                           onClick={() =>
                             handleStatusChange(magazine, "draft")
                           }
-                          className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                          className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
                         >
                           <XCircle className="h-4 w-4" />
                           Move to Draft
@@ -586,30 +773,34 @@ export default function AdminEmagazinePage() {
                           onClick={() =>
                             handleStatusChange(magazine, "published")
                           }
-                          className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100"
+                          className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           Publish
                         </button>
                       )}
 
+                      {/* View PDF */}
                       {magazine.pdf_url && (
                         <a
                           href={magazine.pdf_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                         >
                           <FileText className="h-4 w-4" />
                           View PDF
                         </a>
                       )}
 
+                      {/* Delete */}
                       <button
                         type="button"
                         onClick={() => handleDelete(magazine)}
-                        className="ml-auto inline-flex items-center justify-center rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                        disabled={saving}
+                        className="ml-auto inline-flex items-center justify-center rounded-lg border border-red-200 p-2 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                         title="Delete"
+                        aria-label={`Delete ${magazine.title}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
