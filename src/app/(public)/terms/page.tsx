@@ -366,7 +366,7 @@ export default function TermsPage() {
             </div>
 
             <p className="text-sm text-slate-500">
-              13 sections
+             
             </p>
           </div>
 
