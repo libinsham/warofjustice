@@ -158,27 +158,34 @@
 /* Inauguration popup: responsive sizing */
 
 
-/* Default: large monitors */
 
-/* Large monitors */
+
+/* =========================================
+   INAUGURATION POPUP RESPONSIVE SIZING
+========================================= */
+
+/* Large monitors: 32-inch and larger */
 .woj-inauguration-dialog {
   width: min(98vw, 1500px);
-  height: min(94dvh, 950px);
+  height: min(98dvh, 950px);
 }
 
-/* Laptop screens */
-@media screen and (min-width: 768px) and (max-width: 1600px),
-       screen and (min-width: 768px) and (max-height: 900px) {
+/* Laptop: 15.6-inch screens */
+
+/* Laptop: 15.6-inch screens */
+@media screen and (min-width: 768px) and (max-width: 1600px) {
   .woj-inauguration-dialog {
-    width: min(88vw, 1000px);
-    height: min(82dvh, 640px);
+    width: min(85vw, 1050px);
+    height: 85dvh;
+    max-height: 780px;
+    min-height: 0;
   }
 }
 
-/* Mobile */
+/* Mobile and small tablets */
 @media screen and (max-width: 767px) {
   .woj-inauguration-dialog {
-    width: 96vw;
-    height: 90dvh;
+    width: 90vw;
+    height: 96dvh;
   }
 }
