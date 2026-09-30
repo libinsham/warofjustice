@@ -12,7 +12,7 @@ import {
 export const metadata = {
   title: "Terms & Conditions | War of Justice",
   description:
-    "Terms and conditions for using War of Justice and applying to join as a Reporter, Cameraman or Writer.",
+    "Terms and conditions for using War of Justice and applying to join as a Reporter, Cameraman or Editor.",
 };
 
 // Official payment QR code in the public folder.
@@ -113,7 +113,7 @@ const terms: Section[] = [
     title: "User-Submitted Content",
     content: (
       <p>
-        Reporters, cameramen and writers may submit articles,
+        Reporters, cameramen and editors may submit articles,
         photographs, videos and other content. Contributors
         must ensure that their submissions do not infringe
         third-party rights. The organisation may review
@@ -204,61 +204,133 @@ const terms: Section[] = [
   },
   {
     number: "13",
-    title: "Registration and Joining Fee",
+    title: "Registration, Joining Fee and Advertisement Rates",
     className:
       "md:col-span-2 md:w-full md:max-w-5xl md:justify-self-center",
     content: (
-      <div className="space-y-4">
-        <p>
-          Individuals wishing to join our organisation in any
-          of the following roles are required to pay a joining
-          fee of{" "}
-          <strong className="font-bold text-slate-900">
-            ₹10,000 (Rupees Ten Thousand only)
-          </strong>.
-        </p>
+      <div className="space-y-6">
+        {/* Registration and joining fee */}
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-slate-900">
+            Registration and Joining Fee
+          </h3>
 
-        {/* Aligned role and fee columns */}
-       <div className="mx-auto w-full rounded-xl bg-slate-50 p-4 sm:p-5 md:w-1/2">
-          <div className="space-y-3">
-            {["Reporter", "Cameraman", "Writer"].map((role) => (
+          <p>
+            Individuals wishing to join our organisation as a Reporter,
+            Cameraman or Editor are required to pay a joining fee of{" "}
+            <strong className="font-bold text-slate-900">
+              ₹10,100 (Rupees Ten Thousand One Hundred only)
+            </strong>.
+          </p>
+
+          {/* Joining fees: table on desktop, stacked rows on mobile/tablet */}
+       
+{/* Joining Fee Table */}
+<div className="mx-auto w-full rounded-xl bg-slate-50 p-4 sm:p-5 md:w-1/2">
+  <table className="w-full table-fixed border-collapse">
+    <thead>
+      <tr>
+        {["Reporter", "Cameraman", "Editor"].map((role) => (
+          <th
+            key={role}
+            scope="col"
+            className="border-b border-slate-200 px-1 pb-3 text-center text-xs font-semibold text-slate-700 sm:px-2 sm:text-sm"
+          >
+            {role}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {["Reporter", "Cameraman", "Editor"].map((role) => (
+          <td
+            key={role}
+            className="px-1 pt-3 text-center sm:px-2"
+          >
+            <strong className="whitespace-nowrap text-xs font-bold tabular-nums text-slate-900 sm:text-sm">
+              ₹10,100
+            </strong>
+          </td>
+        ))}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+          <p>
+            The joining fee is applicable separately to each role.
+            Applicants must complete the payment through the
+            authorised payment methods provided on the website.
+          </p>
+
+          <p>
+            Payment does not automatically guarantee employment,
+            assignments, a fixed salary, income or a specific number
+            of projects. Membership is subject to payment verification
+            and approval.
+          </p>
+
+          <p>
+            The applicable refund, cancellation and withdrawal policy
+            must be clearly disclosed to applicants before payment.
+            Do not describe the fee as non-refundable unless that
+            policy has been established and is legally permissible.
+          </p>
+        </div>
+
+        <div className="h-px bg-blue-100" />
+
+        {/* Advertisement rates */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Advertisement Rates
+            </h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Advertisement pricing according to the selected
+              placement category.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              {
+                title: "Premium Ad",
+                slot: "Main / prime advertisement slot",
+                price: "₹15,000",
+                color: "border-blue-200 bg-blue-50",
+              },
+              {
+                title: "Standard Ad",
+                slot: "Secondary advertisement slot",
+                price: "₹10,000",
+                color: "border-slate-200 bg-slate-50",
+              },
+              {
+                title: "Basic Ad",
+                slot: "Third-tier advertisement slot",
+                price: "₹7,500",
+                color: "border-slate-200 bg-white",
+              },
+            ].map((ad) => (
               <div
-                key={role}
-                className="grid grid-cols-[1fr_120px] items-center gap-4 border-b border-slate-200 pb-3 last:border-0 last:pb-0"
+                key={ad.title}
+                className={`rounded-xl border p-4 ${ad.color}`}
               >
-                <span className="text-sm font-medium text-slate-700">
-                  {role}
-                </span>
-
-                <strong className="text-right text-sm font-bold tabular-nums text-slate-900">
-                  ₹10,000
-                </strong>
+                <h4 className="text-sm font-bold text-slate-900">
+                  {ad.title}
+                </h4>
+                <p className="mt-1 min-h-10 text-xs leading-5 text-slate-600">
+                  {ad.slot}
+                </p>
+                <p className="mt-3 text-2xl font-extrabold tabular-nums tracking-tight text-blue-700">
+                  {ad.price}
+                </p>
               </div>
             ))}
           </div>
         </div>
-
-        <p>
-          The joining fee is applicable separately to each
-          role. Applicants must complete the payment through
-          the authorised payment methods provided on the
-          website.
-        </p>
-
-        <p>
-          Payment does not automatically guarantee
-          employment, assignments, a fixed salary, income
-          or a specific number of projects. Membership is
-          subject to payment verification and approval.
-        </p>
-
-        <p>
-          The applicable refund, cancellation and withdrawal
-          policy must be clearly disclosed to applicants
-          before payment. Do not describe the fee as
-          non-refundable unless that policy has been
-          established and is legally permissible.
-        </p>
       </div>
     ),
   },
@@ -288,15 +360,15 @@ const roles = [
     imageAlt: "Professional camera equipment",
   },
   {
-    title: "Writer",
+    title: "Editor",
     description:
-      "Join as a Writer and contribute articles and editorial content.",
+      "Join as an Editor and contribute to editing news stories and editorial content.",
     icon: (
       <FileText aria-hidden="true" className="h-5 w-5" />
     ),
     image:
       "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=85",
-    imageAlt: "Writing and editorial work at a desk",
+    imageAlt: "Editorial writing and editing at a desk",
   },
 ];
 
@@ -455,11 +527,11 @@ export default function TermsPage() {
                     </p>
 
                     <p className="mt-1 text-3xl font-extrabold tracking-tight text-blue-700">
-                      ₹10,000
+                      ₹10,100
                     </p>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      Rupees Ten Thousand only
+                      Rupees Ten Thousand One Hundred only
                     </p>
                   </div>
                 </div>
