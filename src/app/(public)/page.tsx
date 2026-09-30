@@ -8,6 +8,7 @@ import { postsApi } from "@/lib/api/posts";
 import { categoriesApi } from "@/lib/api/categories";
 import type { PostSummary } from "@/types";
 
+
 /*
  * Always fetch fresh homepage data.
  *

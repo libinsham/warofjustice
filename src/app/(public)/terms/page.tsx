@@ -223,40 +223,41 @@ const terms: Section[] = [
             </strong>.
           </p>
 
-          {/* Joining fees: table on desktop, stacked rows on mobile/tablet */}
-       
-{/* Joining Fee Table */}
-<div className="mx-auto w-full rounded-xl bg-slate-50 p-4 sm:p-5 md:w-1/2">
-  <table className="w-full table-fixed border-collapse">
-    <thead>
-      <tr>
-        {["Reporter", "Cameraman", "Editor"].map((role) => (
-          <th
-            key={role}
-            scope="col"
-            className="border-b border-slate-200 px-1 pb-3 text-center text-xs font-semibold text-slate-700 sm:px-2 sm:text-sm"
-          >
-            {role}
-          </th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        {["Reporter", "Cameraman", "Editor"].map((role) => (
-          <td
-            key={role}
-            className="px-1 pt-3 text-center sm:px-2"
-          >
-            <strong className="whitespace-nowrap text-xs font-bold tabular-nums text-slate-900 sm:text-sm">
-              ₹10,100
-            </strong>
-          </td>
-        ))}
-      </tr>
-    </tbody>
-  </table>
-</div>
+          {/* Joining fee cards, matching the advertisement-rate cards */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              {
+                title: "Reporter",
+                description: "News stories and reports",
+                price: "₹10,100",
+              },
+              {
+                title: "Cameraman",
+                description: "News footage and video content",
+                price: "₹10,100",
+              },
+              {
+                title: "Editor",
+                description: "Editing news stories and editorial content",
+                price: "₹10,100",
+              },
+            ].map((role) => (
+              <div
+                key={role.title}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <h4 className="text-sm font-bold text-slate-900">
+                  {role.title}
+                </h4>
+                <p className="mt-1 min-h-10 text-xs leading-5 text-slate-600">
+                  {role.description}
+                </p>
+                <p className="mt-3 text-2xl font-extrabold tabular-nums tracking-tight text-blue-700">
+                  {role.price}
+                </p>
+              </div>
+            ))}
+          </div>
 
           <p>
             The joining fee is applicable separately to each role.

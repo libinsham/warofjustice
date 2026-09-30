@@ -3,11 +3,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
-import GlobalInaugurationEffects from "../global-inauguration-effects";
-
+import GlobalInaugurationEffects from "./global-inauguration-effects";
 const STORAGE_KEY = "woj-inauguration-dismissed";
 
-export function InaugurationPopup() {
+export default function InaugurationPopup() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -21,10 +20,9 @@ export function InaugurationPopup() {
   const close = useCallback(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, "yes");
-    } catch {
-      // Close the popup even if session storage is unavailable.
+    } finally {
+      setOpen(false);
     }
-    setOpen(false);
   }, []);
 
   useEffect(() => {
@@ -45,15 +43,16 @@ export function InaugurationPopup() {
     };
   }, [open, close]);
 
-  // Unmount the entire popup, iframe and flower animation on close.
   if (!open) return null;
 
   return (
     <>
+      {/* Flowers exist only while the popup is open */}
       <GlobalInaugurationEffects />
 
+      {/* Popup overlay */}
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-2 backdrop-blur-sm sm:p-4"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-2 backdrop-blur-sm sm:p-4"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) close();
         }}
@@ -62,7 +61,7 @@ export function InaugurationPopup() {
           role="dialog"
           aria-modal="true"
           aria-label="War of Justice inauguration"
-          className="woj-inauguration-dialog relative overflow-hidden rounded-xl bg-transparent shadow-2xl"
+          className="relative h-[94dvh] max-h-[950px] w-[98vw] max-w-[1500px] overflow-hidden rounded-xl bg-transparent shadow-2xl"
         >
           <button
             type="button"
