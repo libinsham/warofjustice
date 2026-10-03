@@ -3,24 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type DocumentType = "id_card" | "certificate";
-
-type MembershipDocument = {
-  document_number: string;
-  document_type: DocumentType;
-  document_type_display: string;
-  status: string;
-  status_display: string;
-  version: number;
-  template_version: string;
-  issue_date: string | null;
-  expiry_date: string | null;
-  verification_url: string | null;
-  has_pdf: boolean;
-};
+import {
+  getMyDocuments,
+  type MemberDocument,
+} from "@/lib/api/documents";
 
 export default function MembershipPage() {
-  const [documents, setDocuments] = useState<MembershipDocument[]>([]);
+  const [documents, setDocuments] = useState<MemberDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,33 +21,10 @@ export default function MembershipPage() {
         setLoading(true);
         setError(null);
 
-        /*
-         * Temporary direct API call.
-         *
-         * Once lib/api/documents.ts is created, we will move
-         * this request into the central API helper.
-         */
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/my/`,
-          {
-            method: "GET",
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Unable to load membership documents (${response.status})`
-          );
-        }
-
-        const data = await response.json();
+        const data = await getMyDocuments();
 
         if (!cancelled) {
-          setDocuments(Array.isArray(data) ? data : data.results ?? []);
+          setDocuments(data);
         }
       } catch (err) {
         if (!cancelled) {
@@ -133,7 +99,9 @@ export default function MembershipPage() {
               Unable to load membership documents
             </h2>
 
-            <p className="mt-2 text-sm text-red-700">{error}</p>
+            <p className="mt-2 text-sm text-red-700">
+              {error}
+            </p>
 
             <button
               type="button"
@@ -156,7 +124,13 @@ export default function MembershipPage() {
                 strokeWidth="1.7"
                 className="h-7 w-7 text-slate-500"
               >
-                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <rect
+                  x="3"
+                  y="5"
+                  width="18"
+                  height="14"
+                  rx="2"
+                />
                 <path d="M7 9h10M7 13h6" />
               </svg>
             </div>
@@ -174,50 +148,50 @@ export default function MembershipPage() {
 
         {/* Documents */}
         {!loading && !error && documents.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-2">
-            <MembershipDocumentCard
-              title="Membership ID Card"
-              description="Your official War of Justice membership identification card."
-              document={idCard}
-              href={
-                idCard
-                  ? `/author/membership/id-card?document=${encodeURIComponent(
-                      idCard.document_number
-                    )}`
-                  : undefined
-              }
-              icon={<IdCardIcon />}
-            />
+          <>
+            <div className="grid gap-6 md:grid-cols-2">
+              <MembershipDocumentCard
+                title="Membership ID Card"
+                description="Your official War of Justice membership identification card."
+                document={idCard}
+                href={
+                  idCard
+                    ? `/author/membership/id-card?document=${encodeURIComponent(
+                        idCard.document_number
+                      )}`
+                    : undefined
+                }
+                icon={<IdCardIcon />}
+              />
 
-            <MembershipDocumentCard
-              title="Membership Certificate"
-              description="Your official War of Justice membership certificate."
-              document={certificate}
-              href={
-                certificate
-                  ? `/author/membership/certificate?document=${encodeURIComponent(
-                      certificate.document_number
-                    )}`
-                  : undefined
-              }
-              icon={<CertificateIcon />}
-            />
-          </div>
-        )}
+              <MembershipDocumentCard
+                title="Membership Certificate"
+                description="Your official War of Justice membership certificate."
+                document={certificate}
+                href={
+                  certificate
+                    ? `/author/membership/certificate?document=${encodeURIComponent(
+                        certificate.document_number
+                      )}`
+                    : undefined
+                }
+                icon={<CertificateIcon />}
+              />
+            </div>
 
-        {/* Information */}
-        {!loading && !error && documents.length > 0 && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="text-base font-semibold text-slate-950">
-              Document Verification
-            </h2>
+            {/* Verification Information */}
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 className="text-base font-semibold text-slate-950">
+                Document Verification
+              </h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Every official document has a unique verification number and QR
-              verification link. Public verification does not expose private
-              contact information.
-            </p>
-          </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Every official document has a unique verification number and
+                QR verification link. Public verification does not expose
+                private contact information.
+              </p>
+            </div>
+          </>
         )}
       </div>
     </main>
@@ -233,7 +207,7 @@ function MembershipDocumentCard({
 }: {
   title: string;
   description: string;
-  document?: MembershipDocument;
+  document?: MemberDocument;
   href?: string;
   icon: React.ReactNode;
 }) {
@@ -251,7 +225,9 @@ function MembershipDocumentCard({
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold">{title}</h2>
+            <h2 className="text-lg font-semibold">
+              {title}
+            </h2>
 
             <p className="mt-1 text-xs text-slate-300">
               Official membership document
@@ -262,7 +238,9 @@ function MembershipDocumentCard({
 
       {/* Card Body */}
       <div className="p-6">
-        <p className="text-sm leading-6 text-slate-600">{description}</p>
+        <p className="text-sm leading-6 text-slate-600">
+          {description}
+        </p>
 
         {document ? (
           <>
@@ -287,7 +265,9 @@ function MembershipDocumentCard({
               />
 
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-sm text-slate-500">Status</span>
+                <span className="text-sm text-slate-500">
+                  Status
+                </span>
 
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -345,7 +325,9 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-sm text-slate-500">{label}</span>
+      <span className="text-sm text-slate-500">
+        {label}
+      </span>
 
       <span className="text-right text-sm font-medium text-slate-900">
         {value}
@@ -396,8 +378,18 @@ function IdCardIcon() {
       strokeWidth="1.7"
       className="h-6 w-6 text-white"
     >
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <circle cx="8" cy="11" r="2" />
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="14"
+        rx="2"
+      />
+      <circle
+        cx="8"
+        cy="11"
+        r="2"
+      />
       <path d="M13 10h5M13 14h4" />
     </svg>
   );
