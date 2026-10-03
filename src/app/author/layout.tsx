@@ -6,6 +6,7 @@ import {
   FileText,
   PlusCircle,
   Image as ImageIcon,
+  CreditCard,
   User,
   Settings,
 } from "lucide-react";
@@ -38,6 +39,11 @@ const AUTHOR_NAV: SidebarItem[] = [
     href: "/author/media",
     label: "Media Library",
     icon: ImageIcon,
+  },
+  {
+    href: "/author/membership",
+    label: "Membership",
+    icon: CreditCard,
   },
   {
     href: "/author/profile",
