@@ -86,11 +86,11 @@ export async function getMyDocument(
 }
 
 export async function getDocumentDownloadUrl(
-  documentNumber: string,
+  documentNumber: string
 ): Promise<string> {
-  const data = await request<{ url: string }>(
+  const data = await request<{ download_url: string }>(
     `/documents/my/${encodeURIComponent(documentNumber)}/download/`,
   );
 
-  return data.url;
+  return data.download_url;
 }
