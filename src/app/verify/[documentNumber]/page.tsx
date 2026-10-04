@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type VerificationDocument = {
-  document_number: string;
+  document_number?: string;
   document_type?: string;
   document_type_display?: string;
   status?: string;
@@ -24,8 +23,7 @@ type VerificationResponse = {
 };
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 export default function VerifyDocumentPage() {
   const params = useParams<{ documentNumber: string }>();
@@ -36,60 +34,68 @@ export default function VerifyDocumentPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function verify() {
       if (!documentNumber) {
-        setError("Document number is missing.");
-        setLoading(false);
+        if (!cancelled) {
+          setError("Document number is missing.");
+          setLoading(false);
+        }
         return;
       }
 
       try {
         setLoading(true);
+        setError(null);
 
         const response = await fetch(
-          `${API_URL}/documents/verify/${encodeURIComponent(
-            documentNumber
-          )}/`,
+          `${API_URL}/documents/verify/${encodeURIComponent(documentNumber)}/`,
           {
             method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
+            headers: { Accept: "application/json" },
             cache: "no-store",
           }
         );
 
-        const result = await response.json();
+        const result = (await response.json()) as VerificationResponse;
 
         if (!response.ok) {
           throw new Error(
-            result?.detail ||
-              "Unable to verify this document."
+            result.detail || "Unable to verify this document."
           );
         }
 
-        setData(result);
+        if (!cancelled) {
+          setData(result);
+        }
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to verify this document."
-        );
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to verify this document."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     verify();
+
+    return () => {
+      cancelled = true;
+    };
   }, [documentNumber]);
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
         <div className="rounded-2xl bg-white px-8 py-10 text-center shadow-xl">
-          <p className="text-sm text-slate-600">
-            Verifying document...
-          </p>
+          <p className="text-sm text-slate-600">Verifying document...</p>
         </div>
       </main>
     );
@@ -99,18 +105,13 @@ export default function VerifyDocumentPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
         <div className="w-full max-w-xl rounded-2xl bg-white p-8 text-center shadow-xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-2xl">
-            ✕
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-2xl text-red-700">
+            ×
           </div>
-
           <h1 className="mt-5 text-2xl font-bold text-slate-950">
             Document Verification Failed
           </h1>
-
-          <p className="mt-3 text-slate-600">
-            {error}
-          </p>
-
+          <p className="mt-3 text-slate-600">{error}</p>
           <p className="mt-4 text-sm text-slate-500">
             Document Number: {documentNumber}
           </p>
@@ -120,9 +121,7 @@ export default function VerifyDocumentPage() {
   }
 
   const document = data?.document;
-
-  const valid =
-    data?.verified === true;
+  const valid = data?.verified === true;
 
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-12">
@@ -136,11 +135,9 @@ export default function VerifyDocumentPage() {
             <p className="text-sm font-medium uppercase tracking-wider opacity-90">
               War of Justice
             </p>
-
             <h1 className="mt-2 text-3xl font-bold">
               {valid ? "Document Verified" : "Document Not Valid"}
             </h1>
-
             <p className="mt-2 text-sm opacity-90">
               Official document verification
             </p>
@@ -149,12 +146,8 @@ export default function VerifyDocumentPage() {
           <div className="space-y-5 p-8">
             <VerificationRow
               label="Document Number"
-              value={
-                document?.document_number ||
-                documentNumber
-              }
+              value={document?.document_number || documentNumber}
             />
-
             <VerificationRow
               label="Document Type"
               value={
@@ -163,7 +156,6 @@ export default function VerifyDocumentPage() {
                 "—"
               }
             />
-
             <VerificationRow
               label="Status"
               value={
@@ -172,16 +164,10 @@ export default function VerifyDocumentPage() {
                 (valid ? "Valid" : "Invalid")
               }
             />
-
             <VerificationRow
               label="Issue Date"
-              value={
-                document?.issue_date
-                  ? formatDate(document.issue_date)
-                  : "—"
-              }
+              value={document?.issue_date ? formatDate(document.issue_date) : "—"}
             />
-
             <VerificationRow
               label="Expiry Date"
               value={
@@ -191,25 +177,21 @@ export default function VerifyDocumentPage() {
               }
             />
 
-            {document?.name && (
-              <VerificationRow
-                label="Name"
-                value={document.name}
-              />
-            )}
+            {document?.name ? (
+              <VerificationRow label="Name" value={document.name} />
+            ) : null}
 
-            {document?.designation && (
+            {document?.designation ? (
               <VerificationRow
                 label="Designation"
                 value={document.designation}
               />
-            )}
+            ) : null}
 
             <div className="border-t border-slate-200 pt-6">
               <p className="text-xs leading-5 text-slate-500">
-                This verification page displays only public
-                verification information. Private contact
-                information is not exposed.
+                This verification page displays only public verification
+                information. Private contact information is not exposed.
               </p>
             </div>
           </div>
@@ -228,10 +210,7 @@ function VerificationRow({
 }) {
   return (
     <div className="flex items-start justify-between gap-6 border-b border-slate-100 pb-4">
-      <span className="text-sm text-slate-500">
-        {label}
-      </span>
-
+      <span className="text-sm text-slate-500">{label}</span>
       <span className="text-right text-sm font-semibold text-slate-900">
         {value}
       </span>
@@ -241,10 +220,7 @@ function VerificationRow({
 
 function formatDate(value: string) {
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
