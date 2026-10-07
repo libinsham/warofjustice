@@ -51,15 +51,15 @@ export interface LoginResponse {
 
 export interface RegisterResponse {
   message?: string;
+
+  subscriber_id?: string;
+
   user?: User;
+
   access?: string;
 
   application?: MemberContributorApplication;
 
-  /*
-   * Kept for compatibility with the existing
-   * subscriber registration/success flow.
-   */
   subscriber_application?: {
     application_id?: string;
   };

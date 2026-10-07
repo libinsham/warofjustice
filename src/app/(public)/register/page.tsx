@@ -809,7 +809,7 @@ export default function RegisterPage() {
       setSubscriberSubmitting(true);
 
       try {
-        const user =
+        const registrationResponse =
           await authApi.registerSubscriber(
             {
               ...data,
@@ -826,9 +826,46 @@ export default function RegisterPage() {
 
         await refresh();
 
+        /*
+         * The registration API may expose the subscriber ID in
+         * the new top-level `subscriber_id` field, while older
+         * responses may still expose it under either
+         * `user.subscriber_application.application_id` or
+         * `subscriber_application.application_id`.
+         *
+         * Support all three so the success page never receives
+         * an empty `?id=` when the backend already generated the ID.
+         */
+        const responseData = registrationResponse as {
+          subscriber_id?: string | null;
+          user?: {
+            subscriber_application?: {
+              application_id?: string | null;
+            } | null;
+          } | null;
+          subscriber_application?: {
+            application_id?: string | null;
+          } | null;
+        };
+
         const applicationId =
-          user.subscriber_application
-            ?.application_id ?? "";
+          responseData.subscriber_id?.trim() ||
+          responseData.user?.subscriber_application?.application_id?.trim() ||
+          responseData.subscriber_application?.application_id?.trim() ||
+          "";
+
+        if (!applicationId) {
+          console.error(
+            "Subscriber ID missing from registration response:",
+            registrationResponse,
+          );
+
+          setSubscriberError(
+            "Registration succeeded, but the subscriber ID was not returned. Please contact support.",
+          );
+
+          return;
+        }
 
         router.push(
           `/subscribe/success?id=${encodeURIComponent(
