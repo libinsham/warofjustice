@@ -42,6 +42,12 @@ export interface User {
     facebook?: string;
     website?: string;
   } | null;
+
+  subscriber_application?: {
+    application_id?: string;
+    channels_confirmed?: string[];
+    created_at?: string;
+  } | null;
 }
 
 export interface LoginResponse {
